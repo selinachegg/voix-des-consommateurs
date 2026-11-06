@@ -1,0 +1,231 @@
+% Parties 0 à 2 du notebook : mise en route, lire et contrôler le fichier, transformer en vecteurs.
+
+\bandeaupartie{I. Parties 0 à 2 : lire, nettoyer, transformer en nombres}{Avant de regrouper quoi que ce soit, on vérifie ce qu'on a reçu.}
+
+\section{Partie 0 : mise en route}
+
+\begin{stepbox}[title={\faPlay\quad Trois cellules, rien à modifier}]
+\begin{tabularx}{\linewidth}{>{\bfseries\color{sectioncolor}}c X}
+0.1 & \faDatabase\ \texttt{NOM\_FICHIER} : le fichier de la base réelle, déjà écrit. \texttt{AFFICHER\_TEXTES} vaut \texttt{False} : aucun verbatim ne s'affiche. \\
+0.2 & \faPuzzlePiece\ installe \texttt{py3langid}, le détecteur de langue, et \texttt{babel}, pour le nom des langues en clair. \\
+0.3 & \faToolbox\ charge les outils : \texttt{verifier}, la palette des graphiques, \texttt{montrer} qui range chaque figure dans \texttt{figures/}. \\
+\end{tabularx}
+\doisvoir{\texttt{Base : RÉELLE (aucun verbatim ne sera affiché)} et le nom du fichier réel, puis \texttt{Outils prêts.}}
+\end{stepbox}
+
+\section{Partie 1 : lire le fichier sans le connaître à l'avance}
+
+L'export de l'entreprise est un tableau Excel qui n'est pas \og propre \fg{}.
+
+\begin{center}
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[x=1cm, y=0.58cm, font=\small]
+\foreach \c/\x/\w in {A/0/2.2,B/2.2/6.4,C/8.6/1.9,D/10.5/2.2,E/12.7/1.6,F/14.3/1.2} {
+  \node[font=\footnotesize\bfseries, color=slate] at (\x+\w/2, 0.6) {\c};
+}
+\foreach \r in {1,...,9} \node[font=\footnotesize\bfseries, color=slate] at (-0.4,-\r+0.5) {\r};
+\fill[notebg] (0,-2) rectangle (15.5,0); \node[color=slate, font=\footnotesize\itshape] at (7.7,-1) {lignes 1 et 2 : vides};
+\fill[sectioncolor!25] (0,-3) rectangle (15.5,-2);
+\foreach \t/\x/\w in {Case Number/0/2.2,Verbatim/2.2/6.4,Brand/8.6/1.9,Business Segment/10.5/2.2,Year Period/12.7/1.6,Blank/14.3/1.2}
+  \node[font=\footnotesize\bfseries, color=darkblue] at (\x+\w/2,-2.5) {\t};
+\foreach \r/\num/\verb/\mq/\seg/\per in {3/10001234/{EXTERNALBonjour,j'ai acheté...}/Brand 003/Chocolate/26 P05,
+  4/10001302/{EXTERNALHello,the bar *******...}/Brand 007/Chocolate/26 P05,
+  5/10001377/{EXTERNALGuten Tag,die Packung...}/Brand 012/Food/26 P06} {
+  \node[anchor=west, font=\scriptsize\ttfamily] at (0.05,-\r-0.5) {\num};
+  \node[anchor=west, font=\scriptsize\ttfamily] at (2.25,-\r-0.5) {\verb};
+  \node[anchor=west, font=\scriptsize] at (8.65,-\r-0.5) {\mq};
+  \node[anchor=west, font=\scriptsize] at (10.55,-\r-0.5) {\seg};
+  \node[anchor=west, font=\scriptsize] at (12.75,-\r-0.5) {\per};
+  \node[font=\scriptsize] at (14.9,-\r-0.5) {$\blacksquare$};
+}
+\node[color=slate, font=\footnotesize\itshape] at (7.7,-6.5) {\ldots\ des centaines de lignes \ldots};
+\fill[notebg] (0,-9) rectangle (15.5,-7); \node[color=slate, font=\footnotesize\itshape] at (7.7,-8) {lignes vides en fin de tableau};
+\draw[slate!50] (0,-9) grid[xstep=15.5, ystep=1] (15.5,0);
+\foreach \x in {2.2,8.6,10.5,12.7,14.3} \draw[slate!50] (\x,0) -- (\x,-9);
+\draw[accentblue, very thick, rounded corners] (14.25,-9.1) rectangle (15.55,0.1);
+\node[accentblue, font=\footnotesize\bfseries, anchor=north] at (14.9,-9.2) {à ignorer};
+\draw[-{Stealth}, accentblue, thick] (-1.6,-2.5) node[left, font=\footnotesize\bfseries, text width=1.6cm, align=right] {l'en-tête est en ligne 3} -- (-0.7,-2.5);
+\end{tikzpicture}}
+\end{center}
+{\small\color{slate}\textit{Schéma de la disposition du fichier ; les lignes montrées sont inventées.}}
+
+\begin{stepbox}[title={1.1\quad Un lecteur qui trouve tout seul où commencent et finissent les données}]
+\texttt{charger\_plaintes(chemin)} lit le fichier \textbf{sans en-tête et en texte}, cherche la première
+ligne qui contient à la fois \texttt{Case Number} et \texttt{Verbatim}, garde les cinq colonnes utiles,
+ignore \texttt{Blank} et les colonnes sans nom, retire les lignes vides, et rend un petit
+\textbf{rapport} (feuille, ligne d'en-tête, lignes vides retirées, colonnes ignorées).
+\doisvoir{l'en-tête trouvé tout seul (en \textbf{ligne 3} sur l'export), le nombre de plaintes lues, la colonne \texttt{Blank} ignorée, les cinq colonnes attendues et seulement elles.}
+\image{un facteur qui cherche le nom sur l'enveloppe, au lieu de compter \og troisième enveloppe en partant du haut \fg.}
+\end{stepbox}
+
+\begin{piege}
+\texttt{pd.read\_excel(chemin, skiprows=2, nrows=1301)} marche aujourd'hui, et \textbf{cassera en silence}
+demain : une ligne de titre en plus ou un fichier plus long, et on lit de travers sans aucun message.
+\end{piege}
+
+\reflexion{1.1}{Si la prochaine livraison compte 40\,000 lignes, avec une ligne de titre en plus avant
+l'en-tête, ou arrive en CSV avec un séparateur \texttt{;}, que faut-il changer dans
+\texttt{charger\_plaintes} ? Et dans la version \texttt{skiprows=2, nrows=1301} ?}
+
+\begin{stepbox}[title={1.2\quad Nettoyer les verbatims, dans le bon ordre}]
+\begin{center}
+\begin{tikzpicture}[
+  t/.style={draw=#1, fill=#1!8, rounded corners=4pt, text width=13.8cm, align=left, font=\footnotesize\ttfamily, inner sep=5pt},
+  e/.style={font=\footnotesize, color=slate, text width=13.8cm, align=center}]
+\node[t=slate] (a) {EXTERNALBonjour,j'ai acheté une tablette ******* hier.Elle avait un goût de savon !Lien : https://exemple.org/fiche.produit};
+\node[e, below=0.35cm of a] (s) {1. retirer \texttt{EXTERNAL} \quad 2. retirer le lien \quad 3. retirer les étoiles\\ 4. une espace après la ponctuation \quad 5. des espaces simples};
+\node[t=accentblue, below=0.35cm of s] (b) {Bonjour, j'ai acheté une tablette hier. Elle avait un goût de savon ! Lien :};
+\draw[-{Stealth[length=3mm]}, very thick, color=accentblue] (s.west) ++(-0.2,0.3) -- ++(0,-0.6);
+\end{tikzpicture}
+\end{center}
+{\small\color{slate}\textit{Exemple inventé, dans la forme des verbatims de la base fictive.}}
+\doisvoir{plus aucun texte ne commence par \texttt{EXTERNAL}, plus d'étoiles ni de liens, les phrases sont séparées, une adresse web n'est pas coupée en morceaux.}
+\image{on enlève l'étiquette collée sur la lettre avant de la lire, et on sépare les mots écrits sans espace.}
+\end{stepbox}
+
+\reflexion{1.2}{Pourquoi retirer le lien \textbf{avant} de remettre des espaces après la ponctuation ?}
+
+\begin{stepbox}[title={1.3\quad Contrôler ce qu'on a reçu}]
+Doublons de \texttt{Case Number}, verbatims vides, longueur des textes en mots, comptes par marque, segment et période.
+\doisvoir{aucun doublon, aucun verbatim vide ; la longueur médiane des plaintes, puis le nombre de marques, de segments et de périodes.}
+\end{stepbox}
+
+\illus[0.97\linewidth]{1_plaintes_par_periode.png}{Figure 1 du notebook (base fictive) : le nombre de plaintes par période.}
+
+\begin{lire}
+\textbf{Comment lire ce graphique.} Une barre par période (\og 26 P05 \fg{} : année 2026, cinquième période).
+La ligne pointillée est la moyenne ; les barres rouges la dépassent de plus d'un quart. Ce graphique dit
+\textbf{quand} il y a eu beaucoup de plaintes, jamais \textbf{pourquoi}.
+\end{lire}
+
+\reflexion{1.3}{Le graphique montre des bosses, l'été 2025 et au printemps 2026. Est-ce un incident ?}
+
+\begin{stepbox}[title={1.4\quad Quelles langues ?}]
+\texttt{py3langid.classify(texte)} rend le code de la langue et un score. La base n'a ni colonne pays ni
+colonne langue : la langue est le seul indice de géographie.
+\doisvoir{une langue pour chaque plainte, et \textbf{plusieurs langues} (les plaintes viennent d'Europe et du Moyen-Orient), de la plus fréquente à la plus rare, avec leur nom en clair. Quelques langues très rares sont souvent des erreurs du détecteur sur des textes courts.}
+\image{la langue d'une lettre dit dans quelle boîte de tri la mettre, pas de quelle ville elle vient : l'allemand couvre plusieurs pays.}
+\end{stepbox}
+
+\begin{stepbox}[title={1.5\quad L'anonymisation a-t-elle laissé passer quelque chose ?}]
+On \textbf{compte}, sans lire les textes, les verbatims d'origine qui contiennent encore une forme reconnaissable :
+\begin{center}\small
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{ll}
+\toprule
+\textbf{motif} & \textbf{expression régulière} \\
+\midrule
+adresse électronique & \verb|[\w.+-]+@[\w-]+\.[\w.]+| \\
+numéro de téléphone & \verb|\+?\d[\d .-]{7,}\d| \\
+suite d'au moins six chiffres & \verb|\b\d{6,}\b| \\
+adresse web & \verb|https?://\S+| \\
+\bottomrule
+\end{tabular}
+\end{center}
+\doisvoir{ni courriel, ni téléphone, ni longue suite de chiffres ; \textbf{40 plaintes} contiennent un lien web ; toutes citent un produit masqué par des étoiles.}
+\end{stepbox}
+
+\reflexion{1.5}{Sur la base réelle, un compte non nul ne prouve pas une fuite, et un compte nul ne prouve
+pas l'absence de fuite. Pourquoi ?}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\clearpage
+\section{Partie 2 : transformer chaque plainte en vecteur}
+
+Pour regrouper des textes, il faut les transformer en nombres. Deux familles s'opposent.
+
+\begin{center}
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[font=\small]
+\begin{scope}
+\node[font=\bfseries, color=sectioncolor] at (2.2,4.4) {TF-IDF : un axe par mot};
+\draw[-{Stealth}, thick, slate] (0,0) -- (4.2,0) node[right] {\texttt{savon}};
+\draw[-{Stealth}, thick, slate] (0,0) -- (0,3.8) node[above] {\texttt{Seife}};
+\draw[-{Stealth}, thick, slate] (0,0) -- (-1.9,-1.6) node[below left] {\texttt{soap}};
+\fill[accentblue] (3.2,0) circle (3pt) node[above, font=\footnotesize] {plainte FR};
+\fill[ambre] (0,2.9) circle (3pt) node[right, font=\footnotesize] {plainte DE};
+\fill[darkblue] (-1.4,-1.18) circle (3pt) node[right, font=\footnotesize] {plainte EN};
+\node[text width=5.4cm, align=center, font=\footnotesize, color=slate] at (2.0,-2.7) {trois mots sans rapport : les trois plaintes sont à angle droit, aussi loin que possible};
+\end{scope}
+\begin{scope}[xshift=9.3cm]
+\node[font=\bfseries, color=accentblue] at (1.8,4.4) {plongement : un espace de sens};
+\fill[notebg] (1.8,1.7) ellipse (2.3 and 1.6);
+\node[font=\footnotesize\itshape, color=slate] at (1.8,3.0) {\og goût de savon \fg};
+\fill[accentblue] (1.4,1.6) circle (3pt) node[left, font=\footnotesize] {FR};
+\fill[ambre] (2.1,1.9) circle (3pt) node[right, font=\footnotesize] {DE};
+\fill[darkblue] (1.8,1.2) circle (3pt) node[below, font=\footnotesize] {EN};
+\fill[slate] (4.4,-0.6) circle (3pt) node[right, font=\footnotesize] {\og emballage abîmé \fg};
+\node[text width=5.4cm, align=center, font=\footnotesize, color=slate] at (1.9,-2.7) {un modèle entraîné sur plus de cent langues place les trois plaintes côte à côte};
+\end{scope}
+\end{tikzpicture}}
+\end{center}
+
+\begin{stepbox}[title={2.1\quad TF-IDF, et à quoi ressemblent les plus proches voisins}]
+Chaque plainte $a$ devient un vecteur avec une coordonnée par terme $t$ :
+\begin{formulabox}
+\[
+w_{t,a} = \bigl(1 + \ln \mathrm{tf}_{t,a}\bigr)\left(\ln\frac{1+n}{1+n_t} + 1\right)
+\quad\text{si } \mathrm{tf}_{t,a} > 0, \qquad w_{t,a} = 0 \text{ sinon},
+\]
+où $\mathrm{tf}_{t,a}$ est le nombre de fois où $t$ apparaît dans la plainte $a$, $n$ le nombre de plaintes et
+$n_t$ le nombre de plaintes qui contiennent $t$. Le vecteur est ensuite divisé par sa longueur. La
+proximité de deux plaintes est le \textbf{cosinus} de leurs vecteurs $\mathbf{x}_a$, $\mathbf{x}_b$ :
+$\cos(\mathbf{x}_a,\mathbf{x}_b) = \mathbf{x}_a^{\top}\mathbf{x}_b / (\lVert\mathbf{x}_a\rVert\,\lVert\mathbf{x}_b\rVert)$,
+qui vaut 1 pour deux textes identiques et 0 pour deux textes sans mot commun.
+\end{formulabox}
+\illus[0.62\linewidth]{ill_tfidf.png}{Exemple inventé : un mot rare et répété pèse lourd, un mot partout (\og le \fg) presque rien.}
+Ensuite, pour chaque plainte, on cherche sa plus proche voisine et on compte la part des plaintes dont la
+voisine est \textbf{dans la même langue}.
+\doisvoir{\textbf{757 mots} dans le vocabulaire ; voisine dans la même langue : \textbf{100 \%}.}
+\end{stepbox}
+
+\begin{stepbox}[title={2.2\quad Plongements multilingues : un transformer qui lit la plainte}]
+\begin{center}
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[
+  bx/.style={draw=#1, fill=#1!10, rounded corners=4pt, align=center, font=\footnotesize, minimum height=1.3cm},
+  fl/.style={-{Stealth[length=2.5mm]}, thick, color=slate}]
+\node[bx=slate, text width=3.2cm] (t) {\og Elle avait un goût de savon ! \fg};
+\node[bx=sectioncolor, right=0.5cm of t, text width=2.8cm] (j) {jetons\\\texttt{Elle|avait|un|}\\\texttt{goût|de|sav|on|!}};
+\node[bx=darkblue, right=0.5cm of j, text width=2.6cm] (m) {{\Large\faLayerGroup}\\28 couches d'attention};
+\node[bx=accentblue, right=0.5cm of m, text width=2.6cm] (v) {un vecteur de\\\textbf{1\,024 nombres}};
+\draw[fl] (t) -- (j); \draw[fl] (j) -- (m); \draw[fl] (m) -- (v);
+\end{tikzpicture}}
+\end{center}
+Le modèle \texttt{Qwen/Qwen3-Embedding-0.6B} (Apache 2.0, plus de cent langues) reçoit chaque plainte
+précédée d'une consigne (\og identifie le problème décrit \fg) et rend un vecteur de longueur 1. Dans
+chaque couche, chaque jeton \og regarde \fg{} tous les autres pour préciser son sens : c'est
+l'\textbf{attention}. Si le modèle ne se charge pas, la cellule passe à \texttt{multilingual-e5-base}.
+\doisvoir{un vecteur normé par plainte ; voisine dans la même langue : \textbf{100 \%}, comme le TF-IDF.}
+\image{un interprète qui résume chaque lettre en une \og empreinte de sens \fg, quelle que soit sa langue.}
+\end{stepbox}
+
+\reflexion{2.2}{Le plongement multilingue rapproche-t-il vraiment des plaintes de langues différentes ?
+Regarde le pourcentage.}
+
+\begin{stepbox}[title={2.3\quad Retirer la signature de la langue : le centrage}]
+\begin{formulabox}
+\[
+\tilde{\mathbf{e}}_i = \frac{\mathbf{e}_i - \boldsymbol{\mu}_{\ell(i)}}{\lVert \mathbf{e}_i - \boldsymbol{\mu}_{\ell(i)} \rVert},
+\]
+où $\mathbf{e}_i$ est le plongement de la plainte $i$, $\ell(i)$ sa langue, et $\boldsymbol{\mu}_\ell$ la moyenne
+des plongements des plaintes de la langue $\ell$. Une langue de moins de 10 plaintes reçoit la moyenne de
+toutes les plaintes.
+\end{formulabox}
+\illus[0.92\linewidth]{ill_centrage.png}{Exemple inventé : la couleur est la langue, la forme le sujet. À gauche, on voit d'abord les langues ; à droite, après centrage, les sujets.}
+\image{trois personnes qui parlent fort, doucement et avec un accent : on retire à chacune sa façon de
+parler, et il ne reste que ce qu'elle dit.}
+\doisvoir{un vecteur centré et normé par plainte ; voisine dans la même langue : \textbf{98 \%}, un peu moins qu'avant.}
+\end{stepbox}
+
+\illus[0.98\linewidth]{2_carte_langues_avant_apres.png}{Figure 2 du notebook (base fictive) : les plaintes en deux dimensions (t-SNE), avant et après centrage.}
+
+\begin{lire}
+\textbf{Comment lire ce graphique.} Chaque point est une plainte, la couleur est sa langue. Le t-SNE
+place près l'une de l'autre deux plaintes proches dans l'espace des vecteurs ; \textbf{les axes n'ont pas
+de sens}, seules les distances en ont. À gauche, les couleurs forment des îlots séparés. À droite, si le
+centrage marche, les trois couleurs se mélangent dans les mêmes paquets : chaque paquet est un sujet
+écrit dans plusieurs langues.
+\end{lire}
+
+\reflexion{2.3}{Le centrage retire-t-il seulement la langue ?}

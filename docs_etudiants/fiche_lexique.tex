@@ -1,0 +1,76 @@
+% Lexique simple et pistes pour aller plus loin.
+
+\bandeaupartie{Lexique et pistes}{Les mots du TP, en une phrase chacun ; puis ce qu'on pourrait faire ensuite.}
+
+\section{Lexique}
+
+\renewcommand{\arraystretch}{1.32}
+\rowcolors{2}{notebg}{white}
+\begin{tabularx}{\linewidth}{>{\bfseries\leavevmode\color{darkblue}}p{3.7cm}X}
+\rowcolor{titlebg}\color{white}mot & \leavevmode\color{white}\textbf{en une phrase} \\
+verbatim & le texte libre écrit par le consommateur, tel qu'il est arrivé. \\
+apprentissage non supervisé & on cherche une structure dans des données sans étiquette : ici, des groupes de plaintes. \\
+TF-IDF & une coordonnée par mot ; un mot pèse lourd s'il est fréquent dans la plainte et rare ailleurs. \\
+cosinus & la proximité de deux vecteurs : 1 s'ils pointent dans la même direction, 0 s'ils n'ont rien en commun. \\
+jeton & le morceau de texte que lit un transformer : un mot fréquent, ou un bout de mot rare. \\
+transformer & un réseau de neurones où chaque jeton \og regarde \fg{} tous les autres (l'attention) pour préciser son sens. \\
+plongement & le vecteur de sens qu'un transformer donne à un texte entier. \\
+centrage par langue & retirer à chaque vecteur la moyenne de sa langue, pour ne garder que ce que la plainte dit. \\
+t-SNE & une méthode qui dessine en 2 ou 3 dimensions des points proches dans un grand espace ; les axes n'ont pas de sens. \\
+ACP & l'analyse en composantes principales : garder les quelques directions où les données varient le plus. \\
+HDBSCAN & un regroupement par densité, qui trouve seul le nombre de groupes et laisse de côté les points isolés. \\
+Ward & une classification hiérarchique qui range chaque point, en fusionnant les groupes qui augmentent le moins la dispersion. \\
+groupes jumeaux & le même problème trouvé deux fois, une fois par langue. \\
+\end{tabularx}
+
+\begin{tabularx}{\linewidth}{>{\bfseries\leavevmode\color{darkblue}}p{3.7cm}X}
+\rowcolor{titlebg}\color{white}mot & \leavevmode\color{white}\textbf{en une phrase (suite)} \\
+c-TF-IDF & le TF-IDF calculé sur un groupe entier, pour trouver ses mots les plus caractéristiques. \\
+LLM & un grand modèle de langue qui écrit du texte ; ici, il tourne dans le notebook et propose titres et définitions. \\
+ARI & l'indice de Rand ajusté : l'accord entre deux regroupements, 1 s'ils sont identiques, 0 au hasard. \\
+loi de Poisson & la loi du nombre d'événements rares quand on en attend en moyenne $\lambda$. \\
+p-valeur & la probabilité d'observer au moins autant si le hasard seul jouait. \\
+Benjamini-Hochberg & une correction des p-valeurs quand on fait beaucoup de tests à la fois. \\
+part dans le pic & la part des plaintes d'un problème, sur une période, qui vient d'une seule marque. \\
+quasi doublon & une plainte dont la plus proche voisine TF-IDF a un cosinus supérieur à 0,9. \\
+incident candidat & un problème en excès sur une marque et une période, porté surtout par cette marque. \\
+pic partagé & un problème en excès sur une période chez plusieurs marques à la fois. \\
+campagne & un groupe de messages presque identiques : une mobilisation, pas un défaut. \\
+rappel, précision & la part d'un groupe caché retrouvée ensemble ; la part d'un groupe trouvé qui vient du groupe caché. \\
+\end{tabularx}
+
+\clearpage
+\section{Pour aller plus loin}
+
+\begin{tcbraster}[raster columns=2, raster equal height, raster column skip=8pt, raster row skip=8pt]
+\begin{conceptbox}[title={\faLanguage\ Traduire avant de comparer}, unbreakable]
+\small Au lieu de centrer par langue, traduire toutes les plaintes dans une seule langue avec un modèle de
+traduction qui tourne dans le notebook. Plus lourd, mais sans le risque de retirer une partie du sens avec
+la langue.
+\end{conceptbox}
+\begin{conceptbox}[title={\faCalendar*\ La date de l'événement}, unbreakable]
+\small Une plainte peut arriver des semaines après l'achat. Si l'entreprise fournit la date de fabrication
+ou le numéro de lot, l'alerte pourrait porter sur le lot plutôt que sur la période de la plainte.
+\end{conceptbox}
+\begin{conceptbox}[title={\faStore\ D'autres cases que la marque}, unbreakable]
+\small Quand une marque domine la base, comparer les marques n'a plus de sens : on peut tester l'excès par
+segment, par pays (si la colonne existe), ou par période seule.
+\end{conceptbox}
+\begin{conceptbox}[title={\faUserCheck\ Une évaluation humaine}, unbreakable]
+\small Faire relire, par une personne habilitée, quelques plaintes de chaque problème et noter si le titre
+proposé par le LLM est juste : c'est la seule façon de mesurer la qualité sur la base réelle.
+\end{conceptbox}
+\begin{conceptbox}[title={\faProjectDiagram\ D'autres regroupements}, unbreakable]
+\small Réduire les vecteurs avec UMAP avant HDBSCAN, ou essayer une modélisation de sujets complète
+(BERTopic), et les ajouter à la chaîne de comparaison, à côté des huit outils.
+\end{conceptbox}
+\begin{conceptbox}[title={\faBell\ Une alerte au fil de l'eau}, unbreakable]
+\small Recalculer chaque semaine les cases anormales sur les nouvelles plaintes seulement, et n'alerter
+que sur ce qui change : c'est ainsi qu'un tel outil servirait au quotidien.
+\end{conceptbox}
+\end{tcbraster}
+
+\vfill
+\begin{center}\color{slate}\small
+\faUserTie\quad Une question ? Lève la main, l'encadrante passe.
+\end{center}

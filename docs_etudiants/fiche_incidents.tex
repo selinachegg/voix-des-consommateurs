@@ -1,0 +1,149 @@
+% Partie 4 du notebook : repérer les incidents.
+
+\bandeaupartie{I. Partie 4 : repérer les incidents}{Plus de plaintes qu'attendu, sur une seule marque : c'est la signature d'un incident.}
+
+\section{Partie 4 : repérer les incidents}
+
+\subsection{Observé contre attendu}
+
+Prenons un problème $g$ (par exemple \og goût de savon \fg) et une case : une marque $b$ et une période $t$.
+Si ce problème se répartissait au hasard entre les cases, on en attendrait
+\begin{formulabox}
+\[
+\lambda_{g,b,t} = \frac{n_g \times n_{b,t}}{N},
+\]
+où $n_g$ est le nombre de plaintes du problème $g$, $n_{b,t}$ le nombre de plaintes (tous problèmes
+confondus) de la marque $b$ à la période $t$, et $N$ le nombre total de plaintes. Le notebook note cette
+valeur \texttt{attendu} ; on la compare au nombre observé $o_{g,b,t}$.
+\end{formulabox}
+
+\begin{center}
+\begin{tikzpicture}[x=0.95cm, y=0.62cm, font=\footnotesize]
+\node[font=\bfseries\small, color=darkblue] at (5,6.3) {problème \og goût de savon \fg{} : plaintes observées (attendues)};
+\foreach \p [count=\j] in {26 P03,26 P04,26 P05,26 P06,26 P07} \node[color=slate] at (\j*1.9-0.3,5.4) {\p};
+\foreach \m [count=\i] in {Brand 001,Brand 002,Brand 003,Brand 004} \node[color=slate, anchor=east] at (0.4,5.4-\i) {\m};
+\foreach \i/\j/\o/\e in {1/1/1/{0,9},1/2/0/{0,8},1/3/1/{1,0},1/4/0/{0,9},1/5/1/{0,8},
+  2/1/0/{0,6},2/2/1/{0,7},2/3/0/{0,7},2/4/1/{0,6},2/5/0/{0,6},
+  3/1/1/{0,8},3/2/0/{0,9},3/4/1/{0,9},3/5/0/{0,8},
+  4/1/1/{1,0},4/2/1/{0,9},4/3/1/{1,1},4/4/0/{0,9},4/5/1/{1,0}} {
+  \fill[notebg] (\j*1.9-1.15,5.4-\i-0.42) rectangle (\j*1.9+0.55,5.4-\i+0.42);
+  \node at (\j*1.9-0.3,5.4-\i) {\o\ (\e)};
+}
+\fill[accentblue] (3*1.9-1.15,5.4-3-0.42) rectangle (3*1.9+0.55,5.4-3+0.42);
+\node[white, font=\footnotesize\bfseries] at (3*1.9-0.3,5.4-3) {9 (2,0)};
+\draw[-{Stealth}, accentblue, thick] (11,1.9) node[right, text width=3.3cm, font=\footnotesize] {9 plaintes là où le hasard en donnerait environ 2} -- (6.4,2.3);
+\end{tikzpicture}
+\end{center}
+{\small\color{slate}\textit{Tableau inventé, pour illustrer le calcul.}}
+
+\subsection{La loi de Poisson : est-ce le hasard ?}
+
+\begin{formulabox}
+Si le hasard seul jouait, le nombre de plaintes $X$ de la case suivrait une loi de Poisson de paramètre
+$\lambda = \lambda_{g,b,t}$. La \textbf{p-valeur} est la probabilité d'observer au moins autant :
+\[
+p = P(X \geq o) = 1 - \sum_{k=0}^{o-1} \frac{\lambda^{k}\, \mathrm{e}^{-\lambda}}{k!},
+\]
+où $o = o_{g,b,t}$ est le nombre observé, $k$ parcourt les valeurs entières de $0$ à $o-1$, et
+$\mathrm{e} \approx 2{,}718$ est la base du logarithme népérien.
+\end{formulabox}
+\illus[0.82\linewidth]{ill_poisson.png}{Exemple inventé : avec 2 plaintes attendues, en observer 9 arrive environ 2 fois sur 10\,000.}
+
+\subsection{Tester des centaines de cases : la correction de Benjamini-Hochberg}
+
+\begin{tcbraster}[raster columns=2, raster equal height, raster column skip=8pt, raster every box/.style={unbreakable}]
+\begin{enfant}[unbreakable]
+\textbf{Lancer cent pièces.} Si on lance cent pièces dix fois, l'une d'elles finira bien par faire
+\og pile \fg{} huit fois : ce n'est pas une pièce truquée, c'est qu'on a regardé beaucoup de pièces.
+Tester des centaines de cases, c'est pareil.
+\end{enfant}
+\begin{formulabox}
+On range les $m$ p-valeurs par ordre croissant, $p_{(1)} \leq \ldots \leq p_{(m)}$, puis
+\[
+q_{(i)} = \min_{j \geq i}\, \min\!\left(1,\ \frac{m\, p_{(j)}}{j}\right).
+\]
+Garder les cases avec $q < 0{,}01$ limite à environ 1 \% la part de fausses découvertes parmi elles.
+\end{formulabox}
+\end{tcbraster}
+
+\subsection{Une marque, ou tout le monde ? La part dans le pic}
+
+\begin{formulabox}
+\[
+\pi_{g,b,t} = \frac{o_{g,b,t}}{o_{g,t}},
+\]
+où $o_{g,t}$ est le nombre de plaintes du problème $g$ à la période $t$, toutes marques confondues. Un
+incident de production touche une marque : $\pi$ est grand. Une saison touche tout le monde : $\pi$ est petit.
+\end{formulabox}
+
+\begin{stepbox}[title={4.1\quad Les cases anormales}]
+\texttt{cases\_anormales(cles, seuil=0.01, o\_min=5)} calcule, pour chaque problème et chaque case :
+observé, attendu, p-valeur, $q$. Elle garde les cases avec $q < 0{,}01$ et au moins 5 plaintes.
+On l'applique à (marque, période) en ajoutant \texttt{part\_pic}, puis à la période seule.
+\doisvoir{des cases anormales sur marque et période ; toutes les valeurs $q$ et toutes les parts entre 0 et 1.}
+\end{stepbox}
+
+\begin{enfant}[unbreakable]
+\textbf{Le sac de bonbons.} Un sac où 10 \% des bonbons sont rouges : en en tirant 20, on attend environ
+\textbf{2 rouges}, c'est $\lambda$. On en tire \textbf{9} : la \textbf{p-valeur} est la chance d'en avoir
+au moins autant par pure malchance ; si elle est minuscule, le sac a un problème. Mais on regarde des
+centaines de sacs, et l'un d'eux finira bien par sortir beaucoup de rouges par hasard : \textbf{$q$} est la
+p-valeur rendue plus sévère pour en tenir compte. On ne lève une alerte que si $q < 0{,}01$.
+\end{enfant}
+
+\begin{stepbox}[title={4.2\quad Incident, pic partagé ou campagne ? Dans cet ordre}]
+\begin{center}
+\begin{tikzpicture}[
+  q/.style={draw=darkblue, fill=notebg, rounded corners=4pt, text width=4.6cm, align=center, font=\footnotesize, minimum height=1.05cm},
+  r/.style={draw=#1, fill=#1, text=white, rounded corners=4pt, text width=2.6cm, align=center, font=\footnotesize\bfseries, minimum height=0.9cm},
+  fl/.style={-{Stealth[length=2.5mm]}, thick, color=slate}]
+\node[q] (q1) {plus de la moitié de ses plaintes ont une voisine au-delà de 0,9 ?};
+\node[q, below=0.75cm of q1] (q2) {une case anormale où la marque porte au moins la moitié du pic ($\pi \geq 0{,}5$) ?};
+\node[q, below=0.75cm of q2] (q3) {une case ou une période anormale, sans marque qui porte le pic ?};
+\node[r=cacao, right=1.4cm of q1] (r1) {campagne};
+\node[r=accentblue, right=1.4cm of q2] (r2) {incident candidat};
+\node[r=ambre, right=1.4cm of q3] (r3) {pic partagé};
+\node[r=slate, below=0.75cm of q3] (r4) {fond};
+\draw[fl] (q1) -- node[above, font=\footnotesize] {oui} (r1);
+\draw[fl] (q2) -- node[above, font=\footnotesize] {oui} (r2);
+\draw[fl] (q3) -- node[above, font=\footnotesize] {oui} (r3);
+\draw[fl] (q1) -- node[right, font=\footnotesize] {non} (q2);
+\draw[fl] (q2) -- node[right, font=\footnotesize] {non} (q3);
+\draw[fl] (q3) -- node[right, font=\footnotesize] {non} (r4);
+\end{tikzpicture}
+\end{center}
+Les cases des incidents candidats forment les \texttt{alertes}.
+\doisvoir{chaque problème a un statut : incident candidat, campagne, pic partagé ou fond. Une base peut très bien n'avoir aucun incident.}
+\end{stepbox}
+
+\begin{enfant}
+\textbf{À la cantine de l'école.} Les classes sont les marques, les semaines sont les périodes.
+\end{enfant}
+\begin{tcbraster}[raster columns=2, raster equal height, raster column skip=6pt, raster row skip=6pt, raster every box/.style={unbreakable}]
+\begin{kpibox}[title={\faBullhorn\ Campagne}, unbreakable]
+\small 30 élèves recopient la même lettre : \og on veut des frites \fg. C'est une pétition, pas un problème
+de cuisine.
+\end{kpibox}
+\begin{kpibox}[title={\faExclamationTriangle\ Incident candidat}, unbreakable]
+\small Mardi, 8 élèves du CM1, et presque personne d'autre, ont mal au ventre après le yaourt. Un mauvais
+lot ?
+\end{kpibox}
+\begin{kpibox}[title={\faSun\ Pic partagé}, unbreakable]
+\small En décembre, toutes les classes toussent en même temps. Ce n'est pas la cantine : c'est l'hiver.
+\end{kpibox}
+\begin{kpibox}[title={\faMugHot\ Fond}, unbreakable]
+\small Chaque semaine, un ou deux élèves trouvent la soupe trop chaude. Rien d'anormal : c'est la vie
+normale.
+\end{kpibox}
+\end{tcbraster}
+
+\illus[0.98\linewidth]{4_carte_chaleur_problemes_periodes.png}{Figure 4 du notebook (base fictive) : chaque problème, période par période.}
+
+\begin{lire}
+\textbf{Comment lire la carte de chaleur.} Une ligne par problème, une colonne par période. La couleur
+compare les plaintes observées à celles attendues si le problème était réparti au hasard dans le temps :
+crème quand c'est comme attendu, rouge de plus en plus foncé pour deux, quatre, huit fois plus, taupe pâle
+pour moins ou aucune. Une ligne rouge sur une ou deux cases seulement : un problème qui surgit puis
+disparaît. Les cases encadrées sont les \textbf{alertes} ; la couleur du nom de la ligne donne le statut
+(rouge : incident, ambre : pic partagé, cacao : campagne).
+\end{lire}

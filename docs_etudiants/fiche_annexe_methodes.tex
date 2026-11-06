@@ -1,0 +1,159 @@
+% Annexe : les méthodes eom, leaf (HDBSCAN) et Ward (plan B), exercices 3.1 et 3.3.
+
+\newpage
+\section{Trois façons de faire les tas : eom, leaf et Ward (exercices 3.1 et 3.3)}
+
+\subsection{D'abord, l'arbre de HDBSCAN}
+
+HDBSCAN regarde les plaintes comme des îles sur une carte, et fait \textbf{baisser le niveau de la mer}
+petit à petit. Au début, tout est une seule grande île. Quand l'eau monte entre deux zones moins denses,
+l'île se coupe en deux, puis encore en deux\ldots{} On obtient un \textbf{arbre} : chaque branche est un
+groupe possible, et sa \textbf{longueur} dit combien de temps il a tenu avant de se couper. Une branche de
+moins de \texttt{taille\_min} plaintes ne compte pas : ses plaintes deviennent du bruit (étiquette $-1$).
+
+Il reste à choisir \textbf{quelles branches garder}. C'est là qu'interviennent les deux méthodes.
+
+\begin{center}
+\begin{tikzpicture}[x=0.62cm, y=0.62cm,
+  br/.style={line width=#1, color=slate!70},
+  pris/.style={line width=#1, color=accentblue},
+  lab/.style={font=\scriptsize, color=slate}]
+\foreach \dx/\titre/\coul in {0/{\texttt{eom} : les branches qui durent}/accentblue, 12.5/{\texttt{leaf} : les bouts de l'arbre}/ambre} {
+\begin{scope}[xshift=\dx cm]
+  \node[font=\small\bfseries, color=\coul] at (5,8.4) {\titre};
+  % tronc
+  \draw[br=5pt] (5,7.6) -- (5,6.5);
+  \draw[br=2pt] (2.5,6.5) -- (7.5,6.5);
+  % branche gauche A : longue, puis coupée en deux petits bouts
+  \draw[br=4pt] (2.5,6.5) -- (2.5,2.6);
+  \draw[br=1.5pt] (1.5,2.6) -- (3.5,2.6);
+  \draw[br=2pt] (1.5,2.6) -- (1.5,1.4);
+  \draw[br=2pt] (3.5,2.6) -- (3.5,1.6);
+  % branche droite B : courte, puis coupée en deux longues branches
+  \draw[br=4pt] (7.5,6.5) -- (7.5,5.2);
+  \draw[br=1.5pt] (6.3,5.2) -- (8.7,5.2);
+  \draw[br=3pt] (6.3,5.2) -- (6.3,0.8);
+  \draw[br=3pt] (8.7,5.2) -- (8.7,1.2);
+  \node[lab] at (2.5,7.0) {A}; \node[lab] at (7.5,7.0) {B};
+  \node[lab, below] at (1.5,1.4) {A1}; \node[lab, below] at (3.5,1.6) {A2};
+  \node[lab, below] at (6.3,0.8) {B1}; \node[lab, below] at (8.7,1.2) {B2};
+\end{scope}
+}
+% eom : A (longue) et B1, B2 (longues) ; leaf : les quatre bouts
+\draw[pris=4pt, color=accentblue] (2.5,6.5) -- (2.5,2.6);
+\draw[pris=3pt, color=accentblue] (6.3,5.2) -- (6.3,0.8);
+\draw[pris=3pt, color=accentblue] (8.7,5.2) -- (8.7,1.2);
+\begin{scope}[xshift=12.5cm]
+\draw[pris=2pt, color=ambre] (1.5,2.6) -- (1.5,1.4);
+\draw[pris=2pt, color=ambre] (3.5,2.6) -- (3.5,1.6);
+\draw[pris=3pt, color=ambre] (6.3,5.2) -- (6.3,0.8);
+\draw[pris=3pt, color=ambre] (8.7,5.2) -- (8.7,1.2);
+\end{scope}
+\node[font=\footnotesize, text width=6.6cm, align=center] at (5,-0.6) {3 groupes : A entier, B1, B2};
+\node[font=\footnotesize, text width=6.6cm, align=center] at (17.5,-0.6) {4 groupes : A1, A2, B1, B2};
+\end{tikzpicture}
+\end{center}
+{\small\color{slate}\textit{Arbre inventé. En couleur, les branches gardées : chaque plainte ne peut être que dans une seule.}}
+
+\begin{tcbraster}[raster columns=2, raster equal height, raster column skip=8pt, raster every box/.style={unbreakable}]
+\begin{conceptbox}[title={\faTree\ \texttt{eom} : \og excess of mass \fg}, unbreakable]
+\small Garde les branches qui \textbf{durent le plus longtemps}, en tenant compte de leur taille. Si une
+branche dure plus que ses deux sous-branches réunies, on la garde entière (A) ; sinon on garde les
+sous-branches (B1 et B2). Résultat : \textbf{moins de groupes, plus gros et plus solides}. C'est le choix
+par défaut de HDBSCAN.
+\end{conceptbox}
+\begin{conceptbox}[title={\faLeaf\ \texttt{leaf} : les feuilles}, unbreakable]
+\small Garde tous les \textbf{bouts de l'arbre}, les plus petites branches qui ne se coupent plus.
+Résultat : \textbf{plus de groupes, plus petits et plus homogènes}. Utile quand on cherche des
+problèmes fins, au risque de couper un même problème en morceaux.
+\end{conceptbox}
+\end{tcbraster}
+
+\image{une famille qui partage un gâteau : \texttt{eom} coupe les grosses parts qui ont du sens (le côté
+chocolat, le côté fraise), \texttt{leaf} coupe en toutes petites parts.}
+
+\subsection{Le plan B : Ward}
+
+Si aucun des 18 réglages de HDBSCAN n'est admis, c'est que les plaintes ne forment pas d'îles nettes.
+On change alors de méthode : la classification de \textbf{Ward} part dans l'autre sens. Au début, chaque
+plainte est seule dans son groupe ; à chaque étape, on \textbf{colle les deux groupes} dont la fusion
+mélange le moins les plaintes, et on s'arrête quand il reste $k$ groupes.
+
+\noindent\begin{minipage}{\linewidth}
+\begin{center}
+\begin{tikzpicture}[x=0.95cm, y=0.95cm, pt/.style={circle, fill=#1, inner sep=2.2pt},
+  fl/.style={-{Stealth[length=2.5mm]}, thick, color=slate}]
+\foreach \dx/\titre in {0/{départ : 6 groupes}, 4.6/{étape suivante : 4}, 9.2/{arrêt à $k = 2$}} {
+  \node[font=\footnotesize\bfseries, color=darkblue] at (\dx+1.5,2.6) {\titre};
+  \foreach \x/\y in {0.2/0.4, 0.8/0.9, 0.5/1.6, 2.2/0.5, 2.8/1.1, 2.4/1.8} \node[pt=sectioncolor] at (\dx+\x,\y) {};
+}
+% étape 2 : deux paires collées
+\draw[accentblue, thick, rounded corners=6pt] (4.6+0.0,0.15) rectangle (4.6+1.05,1.15);
+\draw[accentblue, thick, rounded corners=6pt] (4.6+1.95,0.25) rectangle (4.6+3.05,1.35);
+% étape 3 : deux groupes
+\draw[accentblue, very thick, rounded corners=8pt] (9.2-0.05,0.1) rectangle (9.2+0.85,1.9);
+\draw[accentblue, very thick, rounded corners=8pt] (9.2+1.95,0.2) rectangle (9.2+3.05,2.1);
+\draw[fl] (3.2,1.0) -- (4.3,1.0);
+\draw[fl] (7.8,1.0) -- (8.9,1.0);
+\end{tikzpicture}
+\end{center}
+{\small\color{slate}\textit{Exemple inventé avec 6 plaintes : à chaque étape, on colle les deux groupes les plus proches au sens de Ward.}}
+\end{minipage}
+
+
+\begin{formulabox}
+\og Mélanger le moins \fg{} veut dire faire grandir le moins possible la \textbf{dispersion à l'intérieur des
+groupes} :
+\[
+W = \sum_{h} \sum_{i \in h} \lVert \mathbf{z}_i - \bar{\mathbf{z}}_h \rVert^2 ,
+\]
+où $h$ parcourt les groupes, $\mathbf{z}_i$ est le vecteur de la plainte $i$ et $\bar{\mathbf{z}}_h$ la
+moyenne du groupe $h$. Ward choisit à chaque étape la fusion qui augmente $W$ le moins.
+\end{formulabox}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\rowcolors{2}{notebg}{white}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{4.2cm}>{\raggedright\arraybackslash}p{5cm}>{\raggedright\arraybackslash}p{5cm}@{}}
+\rowcolor{titlebg} & \color{white}\textbf{HDBSCAN (\texttt{eom} ou \texttt{leaf})} & \color{white}\textbf{Ward (plan B)} \\
+nombre de groupes & trouvé tout seul & fixé d'avance : $k = 8, 12, 16, 20$ ou $30$ \\
+plaintes isolées & laissées de côté ($-1$) & toujours rangées dans un groupe \\
+ce qu'il cherche & des zones denses, de n'importe quelle forme & des groupes compacts, plutôt ronds \\
+quand l'utiliser & des îles nettes dans les données & pas d'îles nettes : un continuum \\
+\end{tabular}
+\end{center}
+
+\begin{piege}
+\textbf{Ward range tout, même ce qui ne ressemble à rien.} Il n'y a plus de plaintes de côté : une
+plainte bizarre finit quand même dans un groupe. C'est pourquoi on garde les mêmes règles d'admission
+(pas de géant, assez de problèmes) et la fusion des jumeaux après Ward.
+\end{piege}
+
+\subsection{HDBSCAN et Ward : deux arbres, une seule différence qui compte}
+
+Les deux méthodes sont \textbf{hiérarchiques}. Toutes les deux construisent un arbre de groupes emboîtés,
+HDBSCAN en regardant la mer monter, Ward en collant les groupes deux à deux, puis décident où couper cet
+arbre. Mais \textbf{seul HDBSCAN regarde la densité}. Ward ne la regarde jamais : il regarde la
+\textbf{dispersion}. À chaque étape, il colle les deux groupes dont la fusion fait le moins grossir la
+dispersion totale $W$, et il s'arrête quand il reste $k$ groupes.
+
+\begin{tcbraster}[raster columns=2, raster equal height, raster column skip=8pt, raster every box/.style={unbreakable}]
+\begin{conceptbox}[title={\faWater\ HDBSCAN}, unbreakable]
+\small Un point isolé au milieu de nulle part, HDBSCAN le \textbf{laisse de côté} ($-1$), parce qu'il
+n'est pas dans une zone dense. Il cherche \textbf{où c'est serré} et accepte de ne pas tout ranger.
+\end{conceptbox}
+\begin{conceptbox}[title={\faObjectGroup\ Ward}, unbreakable]
+\small Le même point isolé, Ward le \textbf{colle de force} au groupe le moins loin, parce qu'il doit
+tout ranger. Il \textbf{range tout} et cherche des paquets ronds et équilibrés.
+\end{conceptbox}
+\end{tcbraster}
+
+\begin{lire}[unbreakable]
+\textbf{Et pour les incidents ?} Un incident est une \textbf{zone dense} au milieu de plaintes variées :
+c'est pour ça que HDBSCAN est le premier choix. Ward n'est que le plan B, quand les plaintes ne forment pas
+d'îles nettes mais un \textbf{continuum}. Là, une méthode de densité ne trouve rien, ou un seul bloc, alors
+que Ward découpe quand même quelque chose d'exploitable, avec les mêmes règles d'admission derrière.\par\smallskip
+Donc Ward n'est pas \og ajouté après HDBSCAN \fg{} : il est essayé après lui, \textbf{à sa place},
+uniquement si HDBSCAN a échoué sur toute la grille. Dans l'exécution normale, \textbf{Ward ne tourne pas
+du tout}.
+\end{lire}

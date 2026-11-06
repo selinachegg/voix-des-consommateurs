@@ -1,0 +1,55 @@
+% Tableau comparatif des modèles de plongement de la partie 7.
+\subsection*{Tableau comparatif des modèles de plongement}
+
+Les sept transformers de la partie~7 vont du modèle ultra-léger au modèle de plongement dérivé d'un LLM.
+Les chiffres sont ceux des versions \textbf{multilingues} utilisées dans le notebook ; les versions
+anglaises de MiniLM-L12 et de e5 sont plus petites (33, 110 et 335 M de paramètres).
+
+\begin{center}
+\scriptsize
+\renewcommand{\arraystretch}{1.3}
+\setlength{\tabcolsep}{2.5pt}
+\rowcolors{2}{notebg}{white}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{2.1cm}>{\raggedright\arraybackslash}p{1.75cm}>{\raggedleft\arraybackslash}p{0.92cm}>{\raggedleft\arraybackslash}p{1.45cm}>{\raggedleft\arraybackslash}p{0.95cm}>{\raggedright\arraybackslash}p{4.18cm}>{\raggedright\arraybackslash}p{3.85cm}@{}}
+\rowcolor{titlebg}\color{white}\textbf{modèle} & \color{white}\textbf{créateur} & \color{white}\textbf{param.} &
+\color{white}\textbf{dim.} & \color{white}\textbf{jetons max} & \color{white}\textbf{points forts} &
+\color{white}\textbf{usage idéal} \\
+MiniLM-L12 multilingue & \logo{microsoft_logo}\logo{sbert_logo}\newline Microsoft, adapté par SBERT & 118 M & 384 & 128 &
+Ultra-rapide, très peu gourmand, tourne sur processeur. &
+Application légère, calcul en temps réel, petit budget d'infrastructure. \\
+e5-small multilingue & \logo{microsoft_logo}\newline Microsoft & 118 M & 384 & 512 &
+Rapide, bon rapport précision et vitesse, avec les préfixes \texttt{query:} et \texttt{passage:}. &
+Prototype de RAG, moteur de recherche simple sur serveur léger. \\
+e5-base multilingue & \logo{microsoft_logo}\newline Microsoft & 278 M & 768 & 512 &
+Équilibré et polyvalent, meilleure finesse sémantique. &
+Production standard, bon compromis entre coût et précision. \\
+e5-large multilingue & \logo{microsoft_logo}\newline Microsoft & 560 M & 1\,024 & 512 &
+Haute précision sémantique, capte bien les nuances. &
+Recherche documentaire où la précision prime sur la vitesse. \\
+BGE-M3 & \logo{baai_logo}\newline BAAI (Beijing Academy of AI) & 568 M & 1\,024 & 8\,192 &
+Hybride, trois en un : dense, mots-clés (creux) et multi-vecteur (ColBERT). &
+RAG sur documents longs qui demande à la fois le sens et les mots-clés exacts. \\
+Qwen3-Embedding-0.6B (le modèle du TP) & \logo{qwen_logo}\newline Alibaba (Qwen) & 0,6 G & 1\,024 (32 à 1\,024, MRL) & 32\,768 &
+Dérivé d'un LLM, sensible aux consignes, grande fenêtre de texte. &
+RAG moderne sur textes longs, code, multilingue exigeant. \\
+Qwen3-Embedding-4B & \logo{qwen_logo}\newline Alibaba (Qwen) & 4 G & 2\,560 (32 à 2\,560, MRL) & 32\,768 &
+Parmi les meilleurs du classement MTEB multilingue à sa sortie (2025). &
+Projet critique de très haute fidélité, avec une carte graphique dédiée. \\
+\end{tabular}
+\end{center}
+
+\noindent{\footnotesize \textbf{param.} : nombre de paramètres. \textbf{dim.} : taille du vecteur produit.
+\textbf{jetons max} : longueur maximale d'un texte, en jetons, au-delà de laquelle il est coupé.
+\textbf{MRL} (\emph{Matryoshka Representation Learning}) : on peut ne garder que les premières coordonnées
+du vecteur et perdre peu de qualité.\par}
+
+\begin{notebox}[title={\faLightbulb\ Ce qu'il faut retenir pour choisir}]
+\begin{itemize}[leftmargin=1.2em, itemsep=2pt]
+\item Ultra-vitesse, sans carte graphique : MiniLM-L12 ou e5-small.
+\item Un standard solide pour des textes courts ou moyens : e5-base ou e5-large.
+\item Retrouver des mots-clés exacts (codes, références) dans des textes longs : BGE-M3.
+\item Traiter de très longs documents (des PDF entiers) ou du code : Qwen3-Embedding (0.6B ou 4B).
+\end{itemize}
+Les plaintes du TP sont courtes et multilingues : c'est la mesure de la partie~7, pas ce tableau, qui
+départage les modèles sur ces données.
+\end{notebox}

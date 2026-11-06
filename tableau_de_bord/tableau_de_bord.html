@@ -1,0 +1,1321 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La voix des consommateurs</title>
+<!-- Tout est local : aucune bibliothèque ni police n'est chargée depuis internet, les résultats ne quittent pas la machine. -->
+<script src="lib/three.min.js"></script>
+<script src="lib/OrbitControls.js"></script>
+<script src="lib/gsap.min.js"></script>
+<script src="lib/ScrollTrigger.min.js"></script>
+<script src="lib/echarts.min.js"></script>
+<script src="lib/echarts-gl.min.js"></script>
+<style>
+@font-face { font-family: "Fraunces"; font-weight: 400; src: url(lib/fonts/fraunces-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "Fraunces"; font-weight: 600; src: url(lib/fonts/fraunces-latin-600-normal.woff2) format("woff2"); }
+@font-face { font-family: "Fraunces"; font-style: italic; src: url(lib/fonts/fraunces-latin-400-italic.woff2) format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 400; src: url(lib/fonts/inter-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 500; src: url(lib/fonts/inter-latin-500-normal.woff2) format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 600; src: url(lib/fonts/inter-latin-600-normal.woff2) format("woff2"); }
+
+:root {
+  --nuit: #160D09; --noir: #3B2219; --chocolat: #5C3A2E; --cacao: #A9705A; --taupe: #8C776C; --ambre: #E4A857;
+  --corail: #E8765C; --rouge: #C0392B; --bordeaux: #7B1E16; --creme: #FBF7F2; --lait: #E9DCCF; --braise: #FF5A3C;
+  --verre: rgba(28, 16, 11, .62); --filet: rgba(233, 220, 207, .14);
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--creme); color: var(--noir); font-family: Inter, "Segoe UI", sans-serif; font-size: 15.5px; line-height: 1.55; }
+h1, h2, h3, .serif { font-family: Fraunces, Cambria, Georgia, serif; font-weight: 600; }
+button { font: inherit; cursor: pointer; }
+
+/* ------------------------------------------------------------------ la galaxie */
+#galaxie { position: relative; height: 100vh; min-height: 620px; background: radial-gradient(ellipse at 60% 40%, #2C1810 0%, var(--nuit) 70%); overflow: hidden; color: var(--lait); }
+#scene { position: absolute; inset: 0; }
+#scene canvas { display: block; }
+.titre { position: absolute; left: 40px; top: 34px; max-width: 560px; pointer-events: none; }
+.titre .sur { font-size: 12px; letter-spacing: .22em; text-transform: uppercase; color: var(--ambre); }
+.titre h1 { font-size: 54px; line-height: 1.02; margin: 10px 0 12px; color: #FFF4EA; letter-spacing: -.01em; }
+.titre h1 em { font-style: italic; font-weight: 400; color: var(--corail); }
+.titre p { margin: 0; color: #CDB9A8; font-size: 15px; }
+.titre .badge { display: inline-block; margin-top: 14px; padding: 3px 11px; border-radius: 20px; font-size: 12px; letter-spacing: .06em;
+  border: 1px solid rgba(228,168,87,.5); color: var(--ambre); }
+.titre .badge.reelle { border-color: rgba(255,90,60,.6); color: var(--braise); }
+.titre .charger { pointer-events: auto; margin-left: 8px; text-decoration: none; color: #E9DCCF; border-color: rgba(233,220,207,.3); transition: background .2s; }
+.titre .charger:hover { background: rgba(255,255,255,.08); }
+
+/* ------------------------------------------------------------------ rubrique de chargement */
+.charge { display: grid; grid-template-columns: 1.15fr 1fr; gap: 18px; }
+.etapes { background: #fff; border-radius: 18px; border: 1px solid var(--lait); padding: 22px 26px; box-shadow: 0 10px 34px rgba(59,34,25,.07); }
+.etapes ol { margin: 0; padding: 0; list-style: none; counter-reset: e; }
+.etapes li { counter-increment: e; position: relative; padding: 0 0 14px 46px; margin: 0 0 14px; border-bottom: 1px dashed var(--lait); }
+.etapes li:last-child { border-bottom: 0; margin-bottom: 0; padding-bottom: 0; }
+.etapes li::before { content: counter(e); position: absolute; left: 0; top: -2px; width: 32px; height: 32px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--rouge), var(--corail)); color: #fff; font-family: Fraunces, serif; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(192,57,43,.3); }
+.etapes code { background: #F5ECE3; padding: 1px 6px; border-radius: 5px; color: var(--bordeaux); font-size: 13.5px; }
+.zone { border: 2px dashed var(--cacao); border-radius: 18px; background: radial-gradient(ellipse at top, #fff, #F7EEE6);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 30px 22px; min-height: 280px; transition: border-color .2s, background .2s; }
+.zone.survol { border-color: var(--rouge); background: #FBEDE6; }
+.zone .icone { width: 64px; height: 64px; border-radius: 18px; background: linear-gradient(135deg, var(--noir), var(--rouge)); color: #fff;
+  font-size: 30px; display: flex; align-items: center; justify-content: center; margin-bottom: 14px; box-shadow: 0 10px 26px rgba(123,30,22,.3); }
+.zone h3 { margin: 0 0 6px; font-size: 22px; color: var(--chocolat); }
+.zone p { margin: 0 0 16px; color: var(--taupe); font-size: 14px; max-width: 380px; }
+.bouton { background: linear-gradient(135deg, var(--rouge), var(--corail)); color: #fff; border: 0; border-radius: 12px; padding: 12px 22px;
+  font-weight: 600; box-shadow: 0 8px 22px rgba(192,57,43,.35); transition: transform .2s; }
+.bouton:hover { transform: translateY(-2px); }
+.zone .actuel { margin-top: 16px; font-size: 12.5px; color: var(--taupe); }
+@media (max-width: 1000px) { .charge { grid-template-columns: 1fr; } }
+.cout-reglages { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; padding: 4px 4px 0; font-size: 13.5px; color: var(--chocolat); }
+.cout-reglages input { width: 74px; font: inherit; padding: 4px 8px; border: 1px solid var(--lait); border-radius: 8px; color: var(--bordeaux); font-weight: 600; }
+.cout-reglages .segm button { font-size: 12.5px; padding: 5px 9px; }
+
+.verre { position: absolute; background: var(--verre); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--filet); border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+#commandes { left: 40px; bottom: 36px; padding: 16px 18px; width: 470px; }
+.ligne { display: flex; align-items: center; gap: 10px; margin: 8px 0; flex-wrap: wrap; }
+.ligne > span { font-size: 11.5px; letter-spacing: .14em; text-transform: uppercase; color: #A88F80; width: 84px; flex: none; }
+.segm { display: inline-flex; background: rgba(255,255,255,.05); border-radius: 10px; padding: 3px; gap: 2px; }
+.segm button { background: none; border: 0; color: #D9C6B8; padding: 6px 11px; border-radius: 8px; font-size: 13.5px; transition: background .25s, color .25s; }
+.segm button:hover { color: #fff; }
+.segm button.actif { background: linear-gradient(135deg, var(--rouge), var(--corail)); color: #fff; box-shadow: 0 4px 14px rgba(192,57,43,.45); }
+.petit { background: rgba(255,255,255,.06); border: 1px solid var(--filet); color: #E9DCCF; border-radius: 9px; padding: 6px 11px; font-size: 13px; }
+.petit:hover { background: rgba(255,255,255,.12); }
+.petit.on { border-color: rgba(228,168,87,.6); color: var(--ambre); }
+#lecture { display: flex; align-items: center; gap: 10px; flex: 1; }
+#curseur { flex: 1; accent-color: var(--corail); }
+#periodeAffichee { font-family: Fraunces, serif; font-size: 15px; color: var(--ambre); min-width: 64px; text-align: right; }
+
+#legende { right: 34px; top: 34px; bottom: 36px; width: 330px; padding: 16px 8px 12px 16px; display: flex; flex-direction: column; }
+#legende h3 { margin: 0 0 2px; font-size: 17px; color: #FFF4EA; display: flex; justify-content: space-between; align-items: center; padding-right: 8px; }
+#legende .sous { font-size: 12.5px; color: #A88F80; margin: 0 0 10px; padding-right: 8px; }
+#items { overflow-y: auto; flex: 1; padding-right: 6px; }
+#items::-webkit-scrollbar { width: 5px; } #items::-webkit-scrollbar-thumb { background: rgba(233,220,207,.2); border-radius: 3px; }
+.item { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 9px; cursor: pointer; transition: background .2s; font-size: 13.5px; color: #E9DCCF; }
+.item:hover, .item.actif { background: rgba(255,255,255,.08); }
+.item .pastille { width: 11px; height: 11px; border-radius: 50%; flex: none; box-shadow: 0 0 10px currentColor; }
+.item .nom { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item .n { color: #A88F80; font-variant-numeric: tabular-nums; font-size: 12.5px; }
+.item .def-statut { flex-basis: 100%; padding: 2px 0 2px 21px; font-size: 11.5px; line-height: 1.35; color: #A88F80; white-space: normal; }
+.item .tag { font-size: 10.5px; padding: 1px 7px; border-radius: 9px; background: rgba(255,90,60,.2); color: #FF9A80; }
+#fiche { margin: 10px 8px 0 0; padding: 12px 14px; border-radius: 12px; background: rgba(255,255,255,.05); border: 1px solid var(--filet); font-size: 13px; color: #D9C6B8; display: none; }
+#fiche b { color: #FFF4EA; }
+#fiche .f-titre { font-family: Fraunces, serif; font-size: 16.5px; color: #FFF4EA; margin: 8px 0 4px; line-height: 1.25; }
+#fiche .f-def { color: #E9DCCF; margin: 0 0 6px; }
+#fiche .f-mots { font-style: italic; color: #A88F80; font-size: 12px; margin: 0 0 9px; }
+#fiche .f-note { font-size: 11px; color: #8C776C; margin-top: 8px; }
+.alerte .def { color: var(--taupe); font-style: italic; margin: 6px 0 0; }
+#fiche .barre { height: 6px; border-radius: 3px; background: rgba(255,255,255,.08); overflow: hidden; margin: 3px 0 7px; }
+#fiche .barre i { display: block; height: 100%; background: linear-gradient(90deg, var(--ambre), var(--corail)); }
+
+.etiquette3d { position: absolute; transform: translate(-50%, -50%); pointer-events: auto; cursor: pointer; font-family: Fraunces, serif;
+  font-size: 12px; font-weight: 600; color: #fff; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center;
+  justify-content: center; border: 1.5px solid rgba(255,255,255,.85); box-shadow: 0 0 16px rgba(0,0,0,.5); transition: opacity .3s; }
+#bulle { position: absolute; pointer-events: none; padding: 9px 12px; border-radius: 10px; background: rgba(22,13,9,.92); border: 1px solid var(--filet);
+  color: #E9DCCF; font-size: 12.5px; line-height: 1.45; opacity: 0; transition: opacity .15s; max-width: 280px; z-index: 5; }
+#bulle b { color: #FFF4EA; font-family: Fraunces, serif; font-size: 13.5px; }
+#grandePeriode { position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%); font-family: Fraunces, serif; font-size: 120px;
+  color: rgba(255,244,234,.07); pointer-events: none; letter-spacing: -.02em; white-space: nowrap; }
+#descendre { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); color: #A88F80; font-size: 12px; letter-spacing: .2em;
+  text-transform: uppercase; text-decoration: none; }
+#descendre:hover { color: var(--ambre); }
+
+/* ------------------------------------------------------------------ bouton i et fenêtre d'aide */
+.i { width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid currentColor; background: none; color: var(--cacao);
+  font-family: Fraunces, serif; font-style: italic; font-weight: 600; font-size: 14px; line-height: 1; display: inline-flex;
+  align-items: center; justify-content: center; flex: none; transition: transform .2s, background .2s, color .2s; }
+.i:hover { transform: scale(1.12); background: var(--rouge); color: #fff; border-color: var(--rouge); }
+.verre .i { color: var(--ambre); }
+#aide { position: fixed; inset: 0; background: rgba(22,13,9,.55); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
+#aide .carte { background: var(--creme); max-width: 560px; width: 100%; border-radius: 18px; padding: 28px 30px 24px; box-shadow: 0 30px 80px rgba(0,0,0,.4); position: relative; border-top: 6px solid var(--rouge); }
+#aide h3 { margin: 0 0 4px; font-size: 24px; color: var(--chocolat); }
+#aide .quoi { color: var(--taupe); font-style: italic; font-family: Fraunces, serif; margin: 0 0 14px; }
+#aide ul { margin: 0; padding-left: 0; list-style: none; }
+#aide li { margin: 9px 0; padding-left: 30px; position: relative; }
+#aide li::before { content: attr(data-n); position: absolute; left: 0; top: 1px; width: 20px; height: 20px; border-radius: 50%; background: var(--lait);
+  color: var(--chocolat); font-size: 11.5px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+#aide .retenir { margin-top: 16px; padding: 11px 14px; background: #fbefe8; border-radius: 10px; color: var(--bordeaux); }
+#aide .fermer { position: absolute; right: 16px; top: 14px; background: none; border: 0; font-size: 22px; color: var(--taupe); }
+
+/* ------------------------------------------------------------------ sections claires */
+main { max-width: 1240px; margin: 0 auto; padding: 0 40px 80px; }
+.chiffres { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin: 28px 0 0; position: relative; z-index: 2; }
+.chiffre { background: #fff; border-radius: 16px; padding: 18px 14px 14px; box-shadow: 0 14px 40px rgba(59,34,25,.12); border: 1px solid var(--lait); text-align: left; }
+.chiffre b { display: block; font-family: Fraunces, serif; font-weight: 600; font-size: 38px; line-height: 1; color: var(--bordeaux); font-variant-numeric: tabular-nums; }
+.chiffre span { display: block; margin-top: 6px; font-size: 12.5px; color: var(--taupe); }
+.chiffre:nth-child(5) b { color: var(--rouge); }
+section.bloc { margin-top: 74px; }
+.entete { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; border-bottom: 1px solid var(--lait); padding-bottom: 12px; margin-bottom: 18px; }
+.entete .num { font-family: Fraunces, serif; font-style: italic; color: var(--corail); font-size: 15px; }
+.entete h2 { margin: 2px 0 0; font-size: 32px; color: var(--chocolat); letter-spacing: -.01em; }
+.entete p { margin: 6px 0 0; color: var(--taupe); max-width: 720px; }
+.outils { display: flex; gap: 10px; align-items: center; }
+.clair .segm { background: var(--lait); }
+.clair .segm button { color: var(--chocolat); }
+.clair .segm button.actif { color: #fff; }
+.carte-graphe { background: #fff; border-radius: 18px; border: 1px solid var(--lait); box-shadow: 0 10px 34px rgba(59,34,25,.07); padding: 14px; }
+.graphe { width: 100%; height: 380px; }
+.deux { display: grid; grid-template-columns: 1.7fr 1fr; gap: 18px; }
+#relief { height: 600px; }
+#alertes { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 18px; }
+.alerte { background: #fff; border-radius: 18px; overflow: hidden; border: 1px solid var(--lait); box-shadow: 0 10px 34px rgba(59,34,25,.08); }
+.alerte .haut { background: linear-gradient(120deg, var(--noir), var(--chocolat) 55%, var(--rouge)); color: #fff; padding: 16px 18px 14px; position: relative; overflow: hidden; }
+.alerte .haut::after { content: ""; position: absolute; right: -40px; top: -50px; width: 160px; height: 160px; border-radius: 50%; background: radial-gradient(circle, rgba(228,168,87,.4), transparent 70%); }
+.alerte .haut small { letter-spacing: .14em; text-transform: uppercase; font-size: 11px; color: var(--ambre); }
+.alerte .haut h3 { margin: 4px 0 0; font-size: 19px; font-weight: 600; }
+.alerte .corps { padding: 14px 18px 6px; }
+.alerte .gros { display: flex; align-items: baseline; gap: 10px; }
+.alerte .gros b { font-family: Fraunces, serif; font-size: 46px; color: var(--rouge); line-height: 1; }
+.alerte .gros span { color: var(--taupe); }
+.alerte .fois { margin-left: auto; font-family: Fraunces, serif; font-size: 22px; color: var(--bordeaux); background: #fbefe8; padding: 2px 10px; border-radius: 10px; }
+.alerte p { margin: 8px 0 0; font-size: 13.5px; color: var(--chocolat); }
+.alerte .mini { height: 150px; }
+.autres { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; margin-top: 18px; }
+.autre { border-radius: 14px; padding: 14px 16px; background: #fff; border: 1px solid var(--lait); border-left: 5px solid var(--ambre); font-size: 13.5px; }
+.autre.campagne { border-left-color: var(--cacao); }
+.autre b { font-family: Fraunces, serif; color: var(--chocolat); font-size: 15px; }
+.tag { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 9px; color: #fff; margin-left: 6px; vertical-align: 2px; }
+.t-incident { background: var(--rouge); } .t-pic { background: var(--ambre); color: var(--noir); } .t-campagne { background: var(--cacao); } .t-fond { background: var(--taupe); }
+#treemap { height: 520px; }
+.verdict { display: flex; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+.verdict div { flex: 1; min-width: 180px; background: linear-gradient(135deg, var(--noir), var(--chocolat)); color: #fff; border-radius: 14px; padding: 14px 18px; }
+.verdict b { font-family: Fraunces, serif; font-size: 34px; color: var(--ambre); display: block; line-height: 1.1; }
+#podium b { font-size: 23px; margin-bottom: 4px; }
+footer { margin-top: 80px; background: var(--nuit); color: #CDB9A8; padding: 34px 40px; font-size: 13.5px; }
+footer .dedans { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 1.3fr 1fr; gap: 30px; }
+footer b { color: var(--ambre); font-weight: 600; }
+footer code { background: rgba(255,255,255,.07); padding: 1px 6px; border-radius: 5px; color: #F3E3D3; }
+
+/* ------------------------------------------------------------------ chargement */
+#depot { position: fixed; inset: 0; z-index: 60; background: radial-gradient(ellipse at center, #2C1810, var(--nuit)); color: var(--lait);
+  display: none; align-items: center; justify-content: center; padding: 16px; }
+#depot .boite { border: 2px dashed rgba(228,168,87,.5); border-radius: 22px; padding: 46px 40px; max-width: 560px; text-align: center; }
+#depot h2 { color: #FFF4EA; font-size: 30px; margin: 0 0 10px; }
+#depot.survol .boite { border-color: var(--corail); background: rgba(232,118,92,.08); }
+
+@media (max-width: 1000px) {
+  .chiffres { grid-template-columns: repeat(3, 1fr); }
+  .deux { grid-template-columns: 1fr; }
+  #legende { display: none; }
+  #legende.ouverte { display: flex; left: 16px; right: 16px; top: 16px; bottom: auto; max-height: 55vh; width: auto; z-index: 4; }
+}
+@media (max-width: 640px) {
+  main { padding: 0 16px 60px; }
+  .titre { left: 16px; top: 18px; right: 16px; }
+  .titre h1 { font-size: 34px; }
+  #commandes { left: 16px; right: 16px; bottom: 16px; width: auto; padding: 12px; }
+  .ligne > span { width: 100%; }
+  .chiffres { grid-template-columns: repeat(2, 1fr); }
+  .entete { flex-direction: column; align-items: flex-start; }
+  .entete h2 { font-size: 26px; }
+  #grandePeriode { font-size: 64px; }
+  #relief { height: 440px; }
+  footer .dedans { grid-template-columns: 1fr; }
+  #alertes { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ================================================================== GALAXIE -->
+<section id="galaxie">
+  <div id="scene"></div>
+  <div id="grandePeriode"></div>
+  <div class="titre">
+    <div class="sur">Plaintes consommateurs, regroupement par problème</div>
+    <h1>La voix des <em>consommateurs</em></h1>
+    <p id="accroche"></p>
+    <span class="badge" id="badge"></span>
+    <a class="badge charger" href="#b-charger">Charger d'autres résultats</a>
+  </div>
+
+  <div id="commandes" class="verre">
+    <div class="ligne" style="justify-content:space-between;margin-top:0">
+      <span style="width:auto">La galaxie des plaintes</span>
+      <button class="i" data-aide="galaxie" title="Comment lire">i</button>
+    </div>
+    <div class="ligne"><span>Couleur</span>
+      <div class="segm" id="modeCouleur">
+        <button data-v="probleme" class="actif">Problème</button><button data-v="langue">Langue</button>
+        <button data-v="periode">Période</button><button data-v="statut">Statut</button><button data-v="categorie" id="btnCategorie" style="display:none">Catégorie</button>
+      </div>
+    </div>
+    <div class="ligne"><span>Disposition</span>
+      <div class="segm" id="modeDispo">
+        <button data-v="carte" class="actif">Carte</button><button data-v="langues">Une galaxie par langue</button>
+      </div>
+      <button class="petit" id="bigbang" title="Disperser les plaintes et les laisser se regrouper">Rejouer</button>
+    </div>
+    <div class="ligne"><span>Temps</span>
+      <div id="lecture">
+        <button class="petit" id="jouer" title="Faire défiler les périodes">▶</button>
+        <input type="range" id="curseur" min="0" max="1" value="0">
+        <div id="periodeAffichee">toutes</div>
+      </div>
+    </div>
+    <div class="ligne"><span>Affichage</span>
+      <button class="petit on" id="isolees">Plaintes isolées</button>
+      <button class="petit on" id="rotation">Rotation</button>
+      <button class="petit" id="plat" title="Aplatir la galaxie et la regarder de face">2D</button>
+      <button class="petit" id="voirLegende" style="display:none">Légende</button>
+    </div>
+  </div>
+
+  <div id="legende" class="verre">
+    <h3><span id="legTitre">Problèmes</span><button class="i" data-aide="legende" title="Comment lire">i</button></h3>
+    <p class="sous" id="legSous">survoler pour éclairer, cliquer pour s'y rendre</p>
+    <div id="items"></div>
+    <div id="fiche"></div>
+  </div>
+  <div id="bulle"></div>
+  <a id="descendre" href="#suite">Descendre ↓</a>
+</section>
+
+<main id="suite">
+  <div class="chiffres" id="chiffres"></div>
+
+  <section class="bloc clair" id="b-volume">
+    <div class="entete">
+      <div><div class="num">01</div><h2>Le volume dans le temps</h2>
+        <p>Combien de plaintes chaque période, et lesquelles sortent du lot.</p></div>
+      <div class="outils">
+        <div class="segm" id="modeVolume"><button data-v="total" class="actif">Total</button><button data-v="segment">Par segment</button></div>
+        <button class="i" data-aide="volume">i</button>
+      </div>
+    </div>
+    <div class="deux">
+      <div class="carte-graphe"><div class="graphe" id="volume"></div></div>
+      <div class="carte-graphe" style="position:relative">
+        <button class="i" data-aide="langues" style="position:absolute;right:14px;top:14px;z-index:2">i</button>
+        <div class="graphe" id="langues"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bloc clair" id="b-relief">
+    <div class="entete">
+      <div><div class="num">02</div><h2>Le relief des excès</h2>
+        <p>Chaque problème, période par période : plus la tour est haute et rouge, plus il y a de plaintes par rapport à ce qu'on attendait.</p></div>
+      <div class="outils">
+        <div class="segm" id="modeRelief"><button data-v="3d" class="actif">En relief</button><button data-v="2d">À plat</button></div>
+        <button class="i" data-aide="relief">i</button>
+      </div>
+    </div>
+    <div class="carte-graphe"><div class="graphe" id="relief"></div></div>
+  </section>
+
+  <section class="bloc clair" id="b-alertes">
+    <div class="entete">
+      <div><div class="num">03</div><h2>Les alertes</h2>
+        <p>Les problèmes qui explosent sur une seule marque et une seule période : les incidents candidats.</p></div>
+      <div class="outils"><button class="i" data-aide="alertes">i</button></div>
+    </div>
+    <div id="alertes"></div>
+    <div class="autres" id="autres"></div>
+  </section>
+
+  <section class="bloc clair" id="b-problemes">
+    <div class="entete">
+      <div><div class="num">04</div><h2>Tous les problèmes</h2>
+        <p>Chaque rectangle est un problème, sa surface est son nombre de plaintes. Un clic le retrouve dans la galaxie.</p></div>
+      <div class="outils"><button class="i" data-aide="treemap">i</button></div>
+    </div>
+    <div class="carte-graphe"><div class="graphe" id="treemap"></div></div>
+  </section>
+
+  <section class="bloc clair" id="b-verif" style="display:none">
+    <div class="entete">
+      <div><div class="num">05</div><h2>Vérification sur la base fictive</h2>
+        <p>Des incidents ont été cachés dans la base fictive. La méthode les retrouve-t-elle, et que gagne-t-on à fusionner les groupes jumeaux ?</p></div>
+      <div class="outils"><button class="i" data-aide="verif">i</button></div>
+    </div>
+    <div class="verdict" id="verdict"></div>
+    <div class="carte-graphe"><div class="graphe" id="rappel"></div></div>
+  </section>
+
+  <section class="bloc clair" id="b-outils" style="display:none">
+    <div class="entete">
+      <div><div class="num">06</div><h2>Comparer les outils</h2>
+        <p>La même chaîne, huit façons de transformer une plainte en vecteur : du simple comptage de mots aux transformers de quatre milliards de paramètres. Ce que chacun coûte, et ce qu'il rapporte.</p></div>
+      <div class="outils"><button class="i" data-aide="outils">i</button></div>
+    </div>
+    <div class="verdict" id="podium"></div>
+    <div class="deux">
+      <div class="carte-graphe" style="position:relative">
+        <button class="i" data-aide="compromis" style="position:absolute;right:14px;top:14px;z-index:2">i</button>
+        <div class="graphe" id="compromis" style="height:440px"></div>
+      </div>
+      <div class="carte-graphe" style="position:relative">
+        <button class="i" data-aide="temps" style="position:absolute;right:14px;top:14px;z-index:2">i</button>
+        <div class="graphe" id="temps" style="height:440px"></div>
+      </div>
+    </div>
+    <div class="deux" style="margin-top:18px">
+      <div class="carte-graphe" style="position:relative">
+        <div class="cout-reglages">
+          <label>Tarif de la carte graphique <input type="number" id="tarif" step="0.05" min="0"> $ / heure</label>
+          <div class="segm" id="volumeCout"><button data-v="1" class="actif">cette base</button><button data-v="10000">10 000 plaintes</button><button data-v="100000">100 000 plaintes</button></div>
+          <button class="i" data-aide="cout">i</button>
+        </div>
+        <div class="graphe" id="cout" style="height:380px"></div>
+      </div>
+      <div class="carte-graphe" style="position:relative">
+        <button class="i" data-aide="memoire" style="position:absolute;right:14px;top:14px;z-index:2">i</button>
+        <div class="graphe" id="memoire" style="height:436px"></div>
+      </div>
+    </div>
+    <div class="carte-graphe" style="margin-top:18px;position:relative">
+      <button class="i" data-aide="qualite" style="position:absolute;right:14px;top:14px;z-index:2">i</button>
+      <div class="graphe" id="qualite" style="height:420px"></div>
+    </div>
+  </section>
+
+  <section class="bloc clair" id="b-charger">
+    <div class="entete">
+      <div><div class="num">07</div><h2>Charger de nouveaux résultats</h2>
+        <p>Après chaque exécution du notebook sur Kaggle, deux fichiers remettent tout ce tableau à jour : <b>resultats.js</b> (rubriques 01 à 05 et la galaxie) et <b>comparaison.js</b> (rubrique 06). Un troisième, <b>noms_problemes.js</b>, est facultatif et reste sur ta machine.</p></div>
+      <div class="outils"><button class="i" data-aide="charger">i</button></div>
+    </div>
+    <div class="charge">
+      <div class="etapes"><ol>
+        <li>Sur Kaggle, ouvrir le notebook, puis l'onglet <b>Output</b> (les sorties de la dernière exécution).</li>
+        <li>Ouvrir le dossier <code>tableau_de_bord</code> et télécharger (<b>Download</b>) <code>resultats.js</code> et <code>comparaison.js</code>.</li>
+        <li><b>Facultatif, pour voir de quoi parle chaque problème :</b> télécharger aussi <code>noms_problemes.js</code>. Il contient les mots qui caractérisent chaque problème, tirés des verbatims : sur la base réelle, il reste sur ta machine, on ne le partage pas et on ne le joint à rien.</li>
+        <li><b>Pour les essayer tout de suite :</b> les glisser ensemble dans le cadre à droite, ou cliquer sur « Choisir les fichiers ». Le tableau se redessine.</li>
+        <li><b>Pour les garder :</b> les copier dans le dossier de cette page, en remplaçant les anciens. À chaque ouverture, la page les lit tout seuls.</li>
+        <li>Ne pas télécharger les fichiers <code>plongements_*.npy</code> : ils sont lourds et ne servent pas ici.</li>
+      </ol></div>
+      <div class="zone" id="zoneCharge">
+        <div class="icone">⇪</div>
+        <h3>Glisse les fichiers ici</h3>
+        <p><b>resultats.js</b>, <b>comparaison.js</b>, et si tu veux <b>noms_problemes.js</b>, ensemble ou un par un. Ils sont lus par ton navigateur, sur ta machine : rien n'est envoyé nulle part.</p>
+        <button class="bouton" id="choisir">Choisir les fichiers</button>
+        <input type="file" id="fichier" accept=".js,.json" multiple hidden>
+        <div class="actuel" id="actuel"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="dedans">
+    <div><b>Ce que ce tableau contient.</b> Des résultats seulement : des comptes par période, langue, segment, marque et problème, les cases anormales, et une position en trois dimensions par plainte. <b>Aucun verbatim, aucun numéro de cas.</b> Les bibliothèques et les polices sont dans le dossier <code>lib/</code> : la page fonctionne sans internet.</div>
+    <div><b>Changer de résultats.</b> Dans les sorties du notebook Kaggle, télécharger <code>tableau_de_bord/resultats.js</code> et <code>comparaison.js</code>, les poser à côté de cette page à la place des anciens, et rouvrir la page. On peut aussi les glisser n'importe où sur la page. <code>noms_problemes.js</code> (facultatif) remplace les numéros des problèmes par leurs mots, sur cette machine seulement.<br><span id="source" style="color:#8C776C"></span></div>
+  </div>
+</footer>
+
+<div id="aide"><div class="carte"><button class="fermer" aria-label="Fermer">×</button><h3></h3><p class="quoi"></p><ul></ul><div class="retenir"></div></div></div>
+<div id="depot"><div class="boite"><h2>Glisse ici les résultats</h2><p>Le fichier <b>resultats.js</b> (ou <b>resultats.json</b>) téléchargé depuis les sorties du notebook Kaggle, dossier <b>tableau_de_bord/</b>.</p><p style="color:#A88F80;font-size:13px">Il n'a pas été trouvé à côté de cette page. Rien n'est envoyé nulle part : le fichier est lu par ton navigateur, sur ta machine.</p></div></div>
+
+<script src="resultats.js"></script>
+<script src="comparaison.js"></script>
+<script src="noms_problemes.js"></script>
+<script>
+"use strict";
+// ==================================================================================== constantes
+const C = { nuit: "#160D09", noir: "#3B2219", chocolat: "#5C3A2E", cacao: "#A9705A", taupe: "#8C776C", ambre: "#E4A857",
+  corail: "#E8765C", rouge: "#C0392B", bordeaux: "#7B1E16", creme: "#FBF7F2", lait: "#E9DCCF", braise: "#FF5A3C" };
+// couleurs lumineuses pour le fond sombre de la galaxie
+const LUEURS = ["#FF6B4A", "#F2B33D", "#F7E1C8", "#E8765C", "#D9534F", "#D99A6C", "#FFD08A", "#C0392B", "#F09A7A", "#E4A857",
+  "#FF8F6B", "#C97B4A", "#F5C6A5", "#B5523B", "#EFC07A", "#A9705A", "#FFB38A"];
+// Noms des langues : les 140 codes du modèle de py3langid 0.4.0, nommés par la base standard CLDR,
+// et 6 codes rares complétés.
+const NOMS_LANGUES = {"ace":"aceh","af":"afrikaans","am":"amharique","an":"aragonais","ar":"arabe","ary":"arabe marocain","arz":"arabe égyptien","as":"assamais","az":"azerbaïdjanais","ba":"bachkir","bcl":"bikol","be":"biélorusse","bg":"bulgare","bn":"bengali","br":"breton","bs":"bosniaque","ca":"catalan","crh":"tatar de Crimée","cs":"tchèque","cy":"gallois","da":"danois","de":"allemand","dz":"dzongkha","el":"grec","en":"anglais","eo":"espéranto","es":"espagnol","et":"estonien","eu":"basque","ext":"estrémègne","fa":"persan","fi":"finnois","fo":"féroïen","fr":"français","fuv":"peul du Nigeria","fy":"frison occidental","ga":"irlandais","gcf":"créole guadeloupéen","gcr":"créole guyanais","gd":"gaélique écossais","gl":"galicien","gom":"konkani","grc":"grec ancien","gu":"goudjarati","gug":"guarani","guw":"goun","ha":"haoussa","hbo":"hébreu ancien","he":"hébreu","hi":"hindi","hr":"croate","ht":"créole haïtien","hu":"hongrois","hy":"arménien","id":"indonésien","ig":"igbo","is":"islandais","it":"italien","ja":"japonais","jv":"javanais","ka":"géorgien","kab":"kabyle","kik":"kikuyu","kk":"kazakh","km":"khmer","kn":"kannada","ko":"coréen","ku":"kurde","ky":"kirghize","la":"latin","lb":"luxembourgeois","lg":"ganda","lij":"ligure","ln":"lingala","lo":"lao","lt":"lituanien","ltg":"latgalien","lv":"letton","mg":"malgache","mk":"macédonien","ml":"malayalam","mn":"mongol","mr":"marathi","ms":"malais","mt":"maltais","my":"birman","ne":"népalais","nl":"néerlandais","nn":"norvégien nynorsk","no":"norvégien","nso":"sotho du Nord","oc":"occitan","om":"oromo","or":"odia","pa":"pendjabi","pcm":"pidgin nigérian","pl":"polonais","ps":"pachto","pt":"portugais","qu":"quechua","ro":"roumain","ru":"russe","rw":"kinyarwanda","sa":"sanskrit","sdh":"kurde du Sud","se":"same du Nord","si":"cingalais","sk":"slovaque","sl":"slovène","sn":"shona","so":"somali","sq":"albanais","sr":"serbe","st":"sotho du Sud","sv":"suédois","sw":"swahili","ta":"tamoul","te":"télougou","tg":"tadjik","th":"thaï","tk":"turkmène","tl":"filipino","tr":"turc","tt":"tatar","ug":"ouïghour","uk":"ukrainien","ur":"ourdou","uz":"ouzbek","uzs":"ouzbek du Sud","vec":"vénitien","vi":"vietnamien","vo":"volapük","wa":"wallon","wuu":"wu","xh":"xhosa","yo":"yoruba","yue":"cantonais","zh":"chinois","zu":"zoulou","zxx":"sans contenu linguistique","?":"texte vide"};
+const COULEURS_LANGUES = ["#F2B33D", "#FF5A3C", "#F7E1C8", "#C97B4A", "#F09A7A", "#B5523B", "#FFD08A", "#D99A6C"];
+const STATUTS = {
+  "incident candidat": { c: "#FF4D3A", nom: "incident", cl: "t-incident",
+    def: "Un problème qui explose sur une seule marque, à une période précise : la signature d'un défaut de production ou d'un lot. À vérifier en priorité." },
+  "campagne": { c: "#C98E6F", nom: "campagne", cl: "t-campagne",
+    def: "Beaucoup de messages presque identiques, envoyés par beaucoup de gens (appli de notation, réseaux sociaux) : une mobilisation, pas un défaut du produit." },
+  "pic partagé": { c: "#F2B33D", nom: "pic partagé", cl: "t-pic",
+    def: "Un problème qui monte chez toutes les marques en même temps : la cause est extérieure, comme la chaleur de l'été." },
+  "fond": { c: "#9C857A", nom: "fond", cl: "t-fond",
+    def: "Le bruit habituel : des plaintes qui arrivent régulièrement, sans pic. Elles servent de référence." },
+  "isolée": { c: "#5A3E33", nom: "plainte isolée", cl: "t-fond",
+    def: "Une plainte qui ne ressemble assez à aucune autre pour entrer dans un problème." },
+};
+const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const fr = (x, d = 0) => Number(x).toLocaleString("fr-FR", { minimumFractionDigits: d, maximumFractionDigits: d });
+const pct = x => fr(100 * x) + " %";
+const nomLangue = c => NOMS_LANGUES[c] || `langue « ${c} »`;   // code inconnu : affiché tel quel
+const court = (nom, k = 3) => nom.split(", ").slice(0, k).join(", ");
+
+// ==================================================================================== textes d'aide (pour les débutants)
+const AIDES = {
+  galaxie: { t: "La galaxie des plaintes", q: "Chaque point lumineux est une plainte.",
+    l: ["Deux points proches racontent à peu près la même chose, même s'ils sont écrits dans des langues différentes.",
+        "Un amas de points de la même couleur est un problème que la méthode a trouvé toute seule, sans qu'on lui dise quoi chercher.",
+        "Cliquer et glisser pour tourner, la molette pour zoomer, clic droit pour se déplacer. Le bouton 2D aplatit la galaxie pour la regarder de face.",
+        "Le bouton ▶ fait défiler le temps : seules les plaintes de la période s'allument. Un amas qui s'allume d'un coup, c'est un problème qui surgit.",
+        "« Une galaxie par langue » sépare les langues : si on retrouve les mêmes amas dans chaque galaxie, les problèmes traversent bien les langues.",
+        "« Catégorie » (quand noms_problemes.js est chargé) colore chaque plainte par la famille de son problème : goût, corps étranger, emballage, santé, date, prix…"],
+    r: "Les positions ne veulent rien dire en elles-mêmes (il n'y a pas de « haut » ni de « gauche ») : seule compte la proximité entre les points." },
+  legende: { t: "La légende", q: "La liste de ce que représentent les couleurs.",
+    l: ["En mode Problème, chaque ligne est un problème : son numéro, les mots qui le caractérisent le mieux, et son nombre de plaintes.",
+        "Survoler une ligne éclaire ce problème dans la galaxie et éteint les autres.",
+        "Cliquer dessus fait voler la caméra jusqu'à lui et affiche sa fiche : titre, définition, mots, langues, marque principale, statut. Recliquer ou appuyer sur Échap pour revenir.",
+        "Les titres, définitions et catégories viennent d'un modèle de langue qui tourne dans le notebook : il lit les mots du problème et ses cinq plaintes les plus typiques. Ce sont des propositions, à vérifier."],
+    r: "Sur la base réelle, les noms des problèmes sont remplacés par leur numéro, sauf accord écrit de l'entreprise : ils sont tirés des textes des plaintes." },
+  statut: { t: "Les statuts", q: "Le statut dit quel genre de phénomène est chaque problème. La méthode applique ces règles dans l'ordre.",
+    l: ["Campagne : plus de la moitié des plaintes du problème ont une jumelle presque identique (similarité TF-IDF au-delà de 0,9). Beaucoup de gens envoient le même message : c'est une mobilisation, pas un défaut du produit. Exemple : un message sur un additif après un scan dans une appli.",
+        "Incident (candidat) : sur une marque et une période, le problème a beaucoup plus de plaintes qu'attendu (test de Poisson corrigé pour les tests multiples), et cette marque porte au moins la moitié du pic. Exemple : un goût de savon sur une marque pendant une période.",
+        "Pic partagé : le problème est en excès à une période, mais aucune marque ne porte le pic à elle seule : toutes les marques sont touchées, la cause est extérieure. Exemple : le chocolat qui fond l'été.",
+        "Fond : aucune des règles précédentes. Ce sont les plaintes habituelles, qui arrivent régulièrement : emballages abîmés, dates dépassées, promotions non appliquées.",
+        "Plainte isolée : une plainte qui ne ressemble assez à aucune autre pour entrer dans un problème ; elle n'a pas de statut."],
+    r: "L'incident se regarde en premier (qualité, lots, usines) ; la campagne relève de la communication ; le pic partagé de la saison ou de la logistique ; le fond sert de référence." },
+  volume: { t: "Le volume dans le temps", q: "Une barre par période : combien de plaintes sont arrivées.",
+    l: ["« 26 P05 » veut dire l'année 2026, cinquième période de l'année.",
+        "La ligne pointillée est la moyenne. Les barres rouges dépassent la moyenne de plus de 25 %.",
+        "« Par segment » empile les plaintes selon le segment d'activité (Chocolate, Petcare…)."],
+    r: "Un pic de volume dit qu'il se passe quelque chose, pas quoi. Un incident peut même passer inaperçu ici s'il est noyé dans le reste : c'est pour ça qu'on regroupe par problème." },
+  langues: { t: "Les langues", q: "La part de chaque langue dans les plaintes.",
+    l: ["La langue est détectée automatiquement sur chaque texte : la base n'a pas de colonne langue ni de colonne pays.",
+        "Plus le pétale est grand, plus la langue est fréquente.",
+        "Les langues rares (moins de dix plaintes) sont traitées ensemble par la méthode."],
+    r: "La langue est notre seul indice de géographie : une plainte en allemand vient probablement d'Allemagne, d'Autriche ou de Suisse." },
+  relief: { t: "Le relief des excès", q: "Chaque tour est une case problème × période.",
+    l: ["La hauteur et la couleur disent combien de plaintes il y a eu par rapport à ce qu'on attendait si le problème était réparti au hasard dans le temps.",
+        "Crème : comme attendu. Rouge de plus en plus foncé : deux, quatre, huit fois plus. Pâle et bas : moins.",
+        "Les tours rouge vif sont les alertes, où une seule marque porte le pic.",
+        "Glisser pour tourner, molette pour zoomer. « À plat » montre la même chose en carte de chaleur."],
+    r: "Un problème normal a des tours plates. Une ou deux tours qui jaillissent sur une ligne : c'est un incident, une saison ou une campagne." },
+  alertes: { t: "Les alertes", q: "Une carte par incident candidat.",
+    l: ["Le grand nombre : les plaintes de cette marque, pour ce problème, à cette période. À côté : combien on en attendait.",
+        "« ×15 » : quinze fois plus que prévu.",
+        "Les barres : rouge pour la marque signalée, beige pour toutes les autres marques. Une barre presque toute rouge, c'est une seule marque touchée.",
+        "La chance que ce soit le hasard est calculée par un test statistique (loi de Poisson), corrigé parce qu'on teste des centaines de cases."],
+    r: "Une alerte n'est pas une preuve : c'est une piste. Une personne habilitée lit ensuite quelques plaintes et vérifie les lots et les usines. Sous les alertes, les cartes « campagne » et « pic partagé » expliquent pourquoi ces problèmes ne sont pas des incidents (voir les statuts, bouton Statut de la galaxie puis i)." },
+  treemap: { t: "Tous les problèmes", q: "Une mosaïque : un rectangle par problème.",
+    l: ["La surface est le nombre de plaintes du problème.",
+        "La couleur est son statut : rouge pour un incident, ambre pour un pic partagé par toutes les marques (une saison), cacao pour une campagne, taupe pour le fond habituel.",
+        "Cliquer sur un rectangle remonte à la galaxie et y montre le problème."],
+    r: "Les plus gros problèmes sont le plus souvent le bruit de fond normal (emballages, dates…). Les incidents sont souvent de petits rectangles rouges." },
+  outils: { t: "Comparer les outils", q: "Quel modèle choisir pour transformer les plaintes en vecteurs ?",
+    l: ["Tous les modèles passent par exactement la même chaîne (centrage par langue, regroupement, alertes). Seule change la façon de transformer une plainte en vecteur.",
+        "TF-IDF compte les mots : pas d'apprentissage, très rapide, mais il ne comprend pas qu'« odeur » et « Geruch » veulent dire la même chose.",
+        "Les autres sont des transformers : des réseaux de neurones entraînés sur des milliards de phrases dans une centaine de langues. Plus ils ont de paramètres, plus ils comprennent finement, et plus ils coûtent.",
+        "Aucun de ces modèles n'écrit de texte, et tous tournent dans le notebook : aucune plainte ne sort vers un service extérieur."],
+    r: "Le meilleur modèle n'est pas forcément le plus gros : on cherche celui qui retrouve les incidents pour un temps et un coût raisonnables." },
+  compromis: { t: "Qualité contre vitesse", q: "Chaque bulle est un modèle.",
+    l: ["Vers la droite : plus lent (temps de calcul pour 1 000 plaintes, échelle logarithmique : chaque graduation multiplie par 10).",
+        "Vers le haut : meilleur. Sur la base fictive, c'est l'accord avec la vérité (ARI) : 1 si les problèmes trouvés coïncident exactement avec les groupes cachés, 0 s'ils n'ont rien à voir. Sur la base réelle, c'est la stabilité du regroupement.",
+        "La taille de la bulle est le nombre de paramètres du modèle.",
+        "Le cercle en pointillé désigne le modèle utilisé dans le TP."],
+    r: "Les bons choix sont en haut à gauche : justes et rapides." },
+  temps: { t: "Le temps", q: "Combien de secondes pour chaque modèle.",
+    l: ["Beige : le chargement du modèle, qui comprend son téléchargement la première fois.",
+        "Rouge : le calcul des vecteurs de toutes les plaintes, sur la carte graphique.",
+        "Le chargement se paie une fois ; le calcul grandit avec le nombre de plaintes."],
+    r: "Sur une petite base, le chargement domine. Sur une grande base, c'est le calcul qui compte." },
+  cout: { t: "Le coût", q: "Kaggle est gratuit : ce coût est ce qu'on paierait en louant la même carte graphique.",
+    l: ["Coût = temps de carte graphique (chargement + calcul) × tarif horaire.",
+        "Le tarif est modifiable dans la case : il est indicatif, les prix des loueurs changent.",
+        "Les boutons extrapolent à 10 000 et 100 000 plaintes, en supposant que le temps de calcul grandit comme le nombre de plaintes."],
+    r: "Même le plus gros modèle coûte quelques centimes ici : ce qui limite, c'est plutôt la mémoire de la carte et le temps d'attente." },
+  memoire: { t: "La mémoire", q: "La mémoire de la carte graphique occupée au plus fort du calcul.",
+    l: ["Une carte T4, celle de Kaggle, a 16 Go.",
+        "Un modèle qui dépasse la mémoire ne peut pas tourner sur la carte : il faut une carte plus grosse ou un modèle plus petit.",
+        "TF-IDF tourne sur le processeur : il n'utilise pas la carte graphique."],
+    r: "Plus de paramètres, plus de mémoire : le modèle de 4 milliards de paramètres remplit une bonne partie de la carte." },
+  qualite: { t: "La qualité en détail", q: "Une ligne par modèle, une colonne par mesure.",
+    l: ["Sur la base fictive : l'accord avec la vérité (ARI), le rappel de chaque groupe caché (incidents goût de savon, plastique, recette pour chat ; saison ; campagne), les alertes retrouvées et les fausses alertes.",
+        "Sous chaque modèle, le nombre de problèmes trouvés. Attention : un modèle qui met presque tout dans un ou deux gros paquets obtient 100 % de rappel, puisque chaque groupe caché y est forcément entier, mais il ne sépare rien et ne lève aucune alerte. C'est pour ça que la mesure principale est l'ARI, qui pénalise les gros paquets.",
+        "Plus la case est rouge, meilleur est le résultat ; pour les fausses alertes, c'est l'inverse.",
+        "Sur la base réelle, il n'y a pas de vérité : on regarde la stabilité, le nombre de problèmes et la part des plaintes laissées de côté."],
+    r: "La base fictive est inventée : elle dit si un modèle sait retrouver ce qu'on y a caché, pas comment il se comportera sur toutes les vraies plaintes." },
+  charger: { t: "Charger de nouveaux résultats", q: "Le tableau ne calcule rien : il affiche le fichier que le notebook a écrit.",
+    l: ["Le notebook, sur Kaggle, fait tous les calculs et écrit trois fichiers dans tableau_de_bord/ : resultats.js, comparaison.js et noms_problemes.js.",
+        "resultats.js et comparaison.js ne contiennent que des chiffres : comptes, problèmes numérotés, alertes, positions des points, mesures des modèles. Jamais le texte d'une plainte ni son numéro : le notebook refuse de les écrire sinon.",
+        "noms_problemes.js donne, pour chaque numéro de problème, ses mots les plus caractéristiques. Ces mots viennent des verbatims : sur la base réelle, il reste sur la machine de l'encadrante. Il ne s'applique qu'aux résultats de la même exécution.",
+        "Glisser les fichiers sur la page les montre tout de suite, jusqu'à la prochaine ouverture ; les copier à côté de la page, à la place des anciens, les rend permanents."],
+    r: "Le jour J : exécuter le notebook sur la base réelle, télécharger resultats.js et comparaison.js (et noms_problemes.js pour soi), les poser à côté de la page, ouvrir la page." },
+  verif: { t: "Vérification sur la base fictive", q: "On a caché des incidents dans la base fictive : la méthode les retrouve-t-elle ?",
+    l: ["Chaque paire de barres est un groupe caché. La barre donne la part de ses plaintes que la méthode a réunies dans un même problème (le rappel).",
+        "Beige : les groupes de HDBSCAN, avant la fusion des jumeaux d'une langue à l'autre. Rouge : les problèmes, après la fusion.",
+        "En haut : combien d'incidents cachés ont déclenché une alerte, et combien d'alertes ne correspondent à rien."],
+    r: "Cette partie n'existe que sur la base fictive : sur la base réelle, personne ne connaît la vérité à l'avance." },
+};
+
+// ==================================================================================== chargement des résultats
+function appliquerNoms(R, N) {
+  // noms_problemes.js : les mots de chaque problème, seulement s'ils viennent de la même exécution que resultats.js
+  if (!N || N.format !== "noms_problemes") return "";
+  if (N.date !== R.date) return `noms_problemes.js vient d'une autre exécution (${N.date}) : noms non appliqués.`;
+  R.problemes.forEach(p => {
+    const d = N.definitions && N.definitions[p.id];
+    if (N.noms[p.id]) { p.mots = N.noms[p.id]; p.nom = N.noms[p.id]; }
+    if (d) { p.nom = d.titre; p.definition = d.definition; p.categorie = d.categorie; }
+  });
+  R.alertes.forEach(a => { const p = R.problemes.find(x => x.id === a.probleme); if (p) { a.nom = p.nom; a.definition = p.definition; } });
+  return N.definitions ? "Titres et définitions des problèmes : proposés par un modèle de langue local (" + (N.modele_langue || "") + "), à vérifier ; lus dans noms_problemes.js, sur cette machine."
+                       : "Noms des problèmes : lus dans noms_problemes.js, sur cette machine.";
+}
+function demarrer(R) {
+  document.getElementById("depot").style.display = "none";
+  const noteNoms = appliquerNoms(R, window.NOMS_PROBLEMES);
+  window.RESULTATS = R;
+  document.getElementById("source").textContent = `Résultats du ${R.date}, base ${R.base}, modèle ${R.modele}.`;
+  document.getElementById("actuel").textContent = `Affichés en ce moment : résultats du ${R.date}, base ${R.base}, ${fr(R.chiffres.plaintes)} plaintes. ${noteNoms}`;
+  entete(R);
+  galaxie(R);
+  chiffres(R);
+  graphes(R);
+}
+// un ou plusieurs fichiers glissés ou choisis : resultats, comparaison, noms des problèmes, dans n'importe quel ordre
+async function lireFichiers(liste) {
+  const lus = {};
+  for (const f of liste) {
+    try {
+      const txt = (await f.text()).replace(/^\s*window\.(RESULTATS|COMPARAISON|NOMS_PROBLEMES)\s*=\s*/, "").replace(/;\s*$/, "");
+      const o = JSON.parse(txt);
+      if (o.format === "tableau_de_bord_plaintes") lus.resultats = o;
+      else if (o.format === "comparaison_modeles") lus.comparaison = o;
+      else if (o.format === "noms_problemes") lus.noms = o;
+      else throw new Error("format inconnu");
+    } catch (e) { alert(`${f.name} n'est pas un fichier du notebook (resultats.js, comparaison.js ou noms_problemes.js).`); }
+  }
+  if (lus.comparaison && !lus.resultats && !lus.noms) {   // la comparaison se redessine sur place
+    window.COMPARAISON = lus.comparaison; comparer(lus.comparaison);
+    document.getElementById("b-outils").scrollIntoView({ behavior: "smooth" }); return;
+  }
+  if (!lus.resultats && !lus.noms) return;
+  if (!window.RESULTATS && lus.resultats && !lus.noms) { if (lus.comparaison) window.COMPARAISON = lus.comparaison; demarrer(lus.resultats);
+    if (lus.comparaison) comparer(lus.comparaison); return; }
+  // sinon on garde les fichiers le temps de recharger la page, qui redessine tout
+  memoriser("resultats", lus.resultats || window.RESULTATS);
+  memoriser("comparaison", lus.comparaison || window.COMPARAISON);
+  memoriser("noms", lus.noms || window.NOMS_PROBLEMES);
+  location.hash = ""; location.reload();
+}
+function memoriser(cle, o) { try { if (o) sessionStorage.setItem(cle, JSON.stringify(o)); } catch (e) {} }
+function retrouver(cle) { try { const s = sessionStorage.getItem(cle); sessionStorage.removeItem(cle); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
+function sessionStorageGet() { return retrouver("resultats"); }
+const depot = document.getElementById("depot");
+addEventListener("dragover", e => { e.preventDefault(); if (!window.RESULTATS) { depot.style.display = "flex"; depot.classList.add("survol"); } });
+depot.addEventListener("dragleave", () => { depot.classList.remove("survol"); if (window.RESULTATS) depot.style.display = "none"; });
+addEventListener("drop", e => { e.preventDefault(); depot.classList.remove("survol"); if (e.dataTransfer.files.length) lireFichiers([...e.dataTransfer.files]); });
+const zoneCharge = document.getElementById("zoneCharge"), champ = document.getElementById("fichier");
+document.getElementById("choisir").addEventListener("click", () => champ.click());
+champ.addEventListener("change", () => { if (champ.files.length) lireFichiers([...champ.files]); });
+zoneCharge.addEventListener("dragover", e => { e.preventDefault(); e.stopPropagation(); zoneCharge.classList.add("survol"); });
+zoneCharge.addEventListener("dragleave", () => zoneCharge.classList.remove("survol"));
+zoneCharge.addEventListener("drop", e => { e.preventDefault(); e.stopPropagation(); zoneCharge.classList.remove("survol"); if (e.dataTransfer.files.length) lireFichiers([...e.dataTransfer.files]); });
+
+// ==================================================================================== en-tête
+function entete(R) {
+  const ch = R.chiffres;
+  document.getElementById("accroche").textContent =
+    `${fr(ch.plaintes)} plaintes en ${ch.langues} langues, de ${R.periodes[0]} à ${R.periodes[R.periodes.length - 1]}. ` +
+    `La méthode y trouve ${ch.problemes} problèmes et lève ${ch.alertes} alerte${ch.alertes > 1 ? "s" : ""}.`;
+  const b = document.getElementById("badge");
+  b.textContent = R.base === "fictive" ? "base fictive" : "base réelle";
+  if (R.base !== "fictive") b.classList.add("reelle");
+}
+
+// ==================================================================================== la galaxie (three.js)
+function galaxie(R) {
+  const P = R.points, N = P.x.length;
+  const conteneur = document.getElementById("scene");
+  const rendu = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  rendu.setPixelRatio(Math.min(devicePixelRatio, 2));
+  conteneur.appendChild(rendu.domElement);
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 200);
+  // distance de la caméra : vue d'ensemble, une galaxie par langue, gros plan sur un problème
+  const DIST = 12.5, DIST_LANGUES = 19, DIST_FOCUS = 5.5;
+  camera.position.set(0, 1.4, DIST);
+  const controles = new THREE.OrbitControls(camera, rendu.domElement);
+  controles.enableDamping = true; controles.dampingFactor = 0.06; controles.autoRotate = true; controles.autoRotateSpeed = 0.45;
+  controles.minDistance = 2; controles.maxDistance = 40;
+
+  // problèmes rangés par taille, une couleur chacun
+  const parTaille = [...R.problemes].sort((a, b) => b.taille - a.taille);
+  const couleurProbleme = {}; parTaille.forEach((p, i) => couleurProbleme[p.id] = LUEURS[i % LUEURS.length]);
+  const probleme = Object.fromEntries(R.problemes.map(p => [p.id, p]));
+  const statutDe = i => P.probleme[i] < 0 ? "isolée" : probleme[P.probleme[i]].statut;
+
+  // positions de la carte, recentrées
+  const carte = new Float32Array(N * 3);
+  for (let i = 0; i < N; i++) { carte[3 * i] = P.x[i] * 1.6; carte[3 * i + 1] = P.y[i] * 1.6; carte[3 * i + 2] = P.z[i] * 1.6; }
+  const L = P.langues.length;
+
+  // tampons : valeur courante, valeur visée ; chaque image rapproche la courante de la visée
+  const pos = new Float32Array(N * 3), posCible = new Float32Array(N * 3);
+  const col = new Float32Array(N * 3), colCible = new Float32Array(N * 3);
+  const alpha = new Float32Array(N), alphaCible = new Float32Array(N);
+  const taille = new Float32Array(N), tailleCible = new Float32Array(N);
+  // départ : une sphère dispersée, d'où les plaintes vont se regrouper
+  const graine = (() => { let s = 7; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
+  function disperser() {
+    for (let i = 0; i < N; i++) {
+      const u = graine() * 2 - 1, th = graine() * Math.PI * 2, r = 9 + graine() * 6, s = Math.sqrt(1 - u * u);
+      pos[3 * i] = r * s * Math.cos(th); pos[3 * i + 1] = r * u; pos[3 * i + 2] = r * s * Math.sin(th);
+    }
+  }
+  disperser();
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute("couleur", new THREE.BufferAttribute(col, 3));
+  geo.setAttribute("alpha", new THREE.BufferAttribute(alpha, 1));
+  geo.setAttribute("taille", new THREE.BufferAttribute(taille, 1));
+  geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 100);
+  const matiere = new THREE.ShaderMaterial({
+    uniforms: { echelle: { value: 400 } },
+    vertexShader: `
+      attribute vec3 couleur; attribute float alpha; attribute float taille;
+      uniform float echelle; varying vec3 vC; varying float vA;
+      void main() { vC = couleur; vA = alpha; vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        gl_PointSize = taille * echelle / -mv.z; gl_Position = projectionMatrix * mv; }`,
+    fragmentShader: `
+      varying vec3 vC; varying float vA;
+      void main() { float d = length(gl_PointCoord - 0.5); if (d > 0.5) discard;
+        float halo = smoothstep(0.5, 0.0, d); float coeur = exp(-d * d * 60.0);
+        gl_FragColor = vec4(vC * (0.55 + 0.9 * coeur) + coeur * 0.25, vA * (0.35 * halo + 0.75 * coeur)); }`,
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  });
+  const nuage = new THREE.Points(geo, matiere);
+  scene.add(nuage);
+
+  // poussière d'étoiles au loin, pour la profondeur
+  const nP = 900, pp = new Float32Array(nP * 3);
+  for (let i = 0; i < nP; i++) { const r = 25 + graine() * 40, th = graine() * 6.283, u = graine() * 2 - 1, s = Math.sqrt(1 - u * u);
+    pp[3 * i] = r * s * Math.cos(th); pp[3 * i + 1] = r * u; pp[3 * i + 2] = r * s * Math.sin(th); }
+  const gp = new THREE.BufferGeometry(); gp.setAttribute("position", new THREE.BufferAttribute(pp, 3));
+  scene.add(new THREE.Points(gp, new THREE.PointsMaterial({ color: 0xE4A857, size: 0.06, transparent: true, opacity: 0.35, depthWrite: false })));
+
+  // ------------------------------------------------------------------ état
+  const etat = { couleur: "probleme", dispo: "carte", isolees: true, fenetre: null, focus: null, survol: null, plat: false };
+  const hex = h => new THREE.Color(h);
+  const couleurPeriode = t => { const f = R.periodes.length > 1 ? t / (R.periodes.length - 1) : 0;
+    const arrets = [[0, "#7A4B3A"], [0.4, "#C97B4A"], [0.7, "#F2B33D"], [1, "#FF5A3C"]];
+    for (let k = 1; k < arrets.length; k++) if (f <= arrets[k][0]) {
+      const a = arrets[k - 1], b = arrets[k], u = (f - a[0]) / (b[0] - a[0]); return hex(a[1]).lerp(hex(b[1]), u); }
+    return hex("#FF5A3C"); };
+
+  const categorieDe = i => P.probleme[i] < 0 ? "plainte isolée" : (probleme[P.probleme[i]].categorie || "autre");
+  const categories = [...new Set(R.problemes.map(p => p.categorie).filter(Boolean))];
+  const couleurCategorie = {}; categories.forEach((c, k) => couleurCategorie[c] = LUEURS[k % LUEURS.length]);
+  couleurCategorie["plainte isolée"] = STATUTS["isolée"].c;
+  if (categories.length) document.getElementById("btnCategorie").style.display = "";
+  function groupe(i) {
+    if (etat.couleur === "categorie") return categorieDe(i);
+    if (etat.couleur === "probleme") return P.probleme[i];
+    if (etat.couleur === "langue") return P.langue[i];
+    if (etat.couleur === "periode") return P.periode[i];
+    return statutDe(i);
+  }
+  function couleurDe(i) {
+    if (etat.couleur === "probleme") return P.probleme[i] < 0 ? hex(STATUTS["isolée"].c) : hex(couleurProbleme[P.probleme[i]]);
+    if (etat.couleur === "langue") return hex(COULEURS_LANGUES[P.langue[i] % COULEURS_LANGUES.length]);
+    if (etat.couleur === "periode") return couleurPeriode(P.periode[i]);
+    if (etat.couleur === "categorie") return hex(couleurCategorie[categorieDe(i)]);
+    return hex(STATUTS[statutDe(i)].c);
+  }
+
+  function viser() {
+    const cle = etat.survol ?? etat.focus;
+    for (let i = 0; i < N; i++) {
+      // position
+      let x = carte[3 * i], y = carte[3 * i + 1], z = carte[3 * i + 2];
+      if (etat.dispo === "langues") { x = x * 0.55 + (P.langue[i] - (L - 1) / 2) * 6.2; y *= 0.55; z *= 0.55; }
+      if (etat.plat) z = 0;
+      posCible[3 * i] = x; posCible[3 * i + 1] = y; posCible[3 * i + 2] = z;
+      // couleur, transparence, taille
+      const c = couleurDe(i); colCible[3 * i] = c.r; colCible[3 * i + 1] = c.g; colCible[3 * i + 2] = c.b;
+      const isolee = P.probleme[i] < 0;
+      let a = isolee ? (etat.isolees ? 0.32 : 0) : 0.95, s = isolee ? 0.16 : 0.24;
+      if (etat.fenetre !== null) { if (P.periode[i] === etat.fenetre) { a = isolee ? 0.5 : 1; s *= 1.6; } else { a *= 0.07; } }
+      if (cle !== null && cle !== undefined) { if (groupe(i) === cle) { a = Math.max(a, 1); s *= 1.35; } else a *= 0.06; }
+      alphaCible[i] = a; tailleCible[i] = s;
+    }
+  }
+
+  // ------------------------------------------------------------------ étiquettes 3D des problèmes
+  const couche = document.getElementById("galaxie");
+  const etiquettes = parTaille.map(p => {
+    const d = document.createElement("div"); d.className = "etiquette3d"; d.textContent = p.id;
+    d.style.background = couleurProbleme[p.id]; d.style.color = "#160D09";
+    d.addEventListener("mouseenter", () => { etat.survol = p.id; viser(); bulleProbleme(p, d); });
+    d.addEventListener("mouseleave", () => { etat.survol = null; viser(); cacherBulle(); });
+    d.addEventListener("click", () => focaliser(p.id));
+    couche.appendChild(d); return { p, d };
+  });
+  const v3 = new THREE.Vector3();
+  function placerEtiquettes() {
+    const visibles = etat.couleur === "probleme" && etat.dispo === "carte";
+    const w = rendu.domElement.clientWidth, h = rendu.domElement.clientHeight;
+    const cle = etat.survol ?? etat.focus;
+    for (const { p, d } of etiquettes) {
+      if (!visibles) { d.style.display = "none"; continue; }
+      let sx = 0, sy = 0, sz = 0, n = 0;
+      for (let i = 0; i < N; i += 1) if (P.probleme[i] === p.id) { sx += pos[3 * i]; sy += pos[3 * i + 1]; sz += pos[3 * i + 2]; n++; }
+      v3.set(sx / n, sy / n, sz / n).project(camera);
+      if (v3.z > 1) { d.style.display = "none"; continue; }
+      d.style.display = "flex"; d.style.left = ((v3.x + 1) / 2 * w) + "px"; d.style.top = ((1 - v3.y) / 2 * h) + "px";
+      d.style.opacity = cle === null || cle === undefined || cle === p.id ? 1 : 0.15;
+    }
+  }
+  function centre(id) {
+    let sx = 0, sy = 0, sz = 0, n = 0;
+    for (let i = 0; i < N; i++) if (groupe(i) === id) { sx += posCible[3 * i]; sy += posCible[3 * i + 1]; sz += posCible[3 * i + 2]; n++; }
+    return n ? new THREE.Vector3(sx / n, sy / n, sz / n) : new THREE.Vector3();
+  }
+
+  // ------------------------------------------------------------------ légende
+  function legende() {
+    const items = document.getElementById("items"); items.innerHTML = "";
+    document.querySelector("#legende .i").dataset.aide = etat.couleur === "statut" ? "statut" : "legende";
+    document.getElementById("legSous").textContent = etat.couleur === "statut"
+      ? "le genre de phénomène : bouton i pour les règles" : "survoler pour éclairer, cliquer pour s'y rendre";
+    let lignes = [];
+    if (etat.couleur === "probleme") {
+      document.getElementById("legTitre").textContent = "Problèmes";
+      lignes = parTaille.map(p => ({ cle: p.id, c: couleurProbleme[p.id], nom: p.nom === `problème ${p.id}` ? `Problème ${p.id}` : `${p.id}  ${court(p.nom, 4)}`, n: p.taille,
+        tag: p.statut === "incident candidat" ? "alerte" : p.statut === "campagne" ? "campagne" : p.statut === "pic partagé" ? "saison" : "" }));
+    } else if (etat.couleur === "langue") {
+      document.getElementById("legTitre").textContent = "Langues";
+      lignes = P.langues.map((l, k) => ({ cle: k, c: COULEURS_LANGUES[k % COULEURS_LANGUES.length], nom: nomLangue(l), n: R.langues[l] }));
+    } else if (etat.couleur === "periode") {
+      document.getElementById("legTitre").textContent = "Périodes";
+      lignes = R.periodes.map((t, k) => ({ cle: k, c: "#" + couleurPeriode(k).getHexString(), nom: t, n: R.plaintes_par_periode[k] }));
+    } else if (etat.couleur === "categorie") {
+      document.getElementById("legTitre").textContent = "Catégories";
+      const n = {}; for (let i = 0; i < N; i++) n[categorieDe(i)] = (n[categorieDe(i)] || 0) + 1;
+      lignes = Object.keys(n).sort((a, b) => (a === "plainte isolée") - (b === "plainte isolée") || n[b] - n[a])
+        .map(c => ({ cle: c, c: couleurCategorie[c], nom: c, n: n[c] }));
+    } else {
+      document.getElementById("legTitre").textContent = "Statuts";
+      const n = {}; for (let i = 0; i < N; i++) n[statutDe(i)] = (n[statutDe(i)] || 0) + 1;
+      lignes = Object.keys(STATUTS).filter(s => n[s]).map(s => ({ cle: s, c: STATUTS[s].c, nom: STATUTS[s].nom, n: n[s], def: STATUTS[s].def }));
+    }
+    for (const l of lignes) {
+      const d = document.createElement("div"); d.className = "item" + (etat.focus === l.cle ? " actif" : "");
+      d.innerHTML = `<span class="pastille" style="background:${l.c};color:${l.c}"></span><span class="nom"></span>` +
+        (l.tag ? `<span class="tag">${l.tag}</span>` : "") + `<span class="n">${fr(l.n)}</span>`;
+      d.querySelector(".nom").textContent = l.nom;
+      if (l.def) { d.style.flexWrap = "wrap"; const q = document.createElement("div"); q.className = "def-statut"; q.textContent = l.def; d.appendChild(q); }
+      d.addEventListener("mouseenter", () => { etat.survol = l.cle; viser(); });
+      d.addEventListener("mouseleave", () => { etat.survol = null; viser(); });
+      d.addEventListener("click", () => focaliser(l.cle));
+      items.appendChild(d);
+    }
+    fiche();
+  }
+  function fiche() {
+    const f = document.getElementById("fiche");
+    if (etat.couleur !== "probleme" || etat.focus === null) { f.style.display = "none"; return; }
+    const p = probleme[etat.focus]; if (!p) { f.style.display = "none"; return; }
+    const total = Object.values(p.langues).reduce((a, b) => a + b, 0);
+    f.innerHTML = `<b class="serif" style="font-size:15px">Problème ${p.id}</b> <span class="tag ${STATUTS[p.statut].cl}" title="${esc(STATUTS[p.statut].def)}" style="cursor:help">${STATUTS[p.statut].nom}</span>` +
+      (p.categorie ? ` <span class="tag" style="background:rgba(228,168,87,.25);color:#F2B33D"></span>` : "") +
+      `<div class="f-titre"></div><div class="f-def"></div><div class="f-mots"></div>` +
+      Object.entries(p.langues).map(([l, n]) => `<div>${nomLangue(l)} <span style="float:right">${fr(n)}</span></div><div class="barre"><i style="width:${100 * n / total}%"></i></div>`).join("") +
+      `<div style="margin-top:4px">marque la plus touchée : <b>${p.marque}</b>, ${pct(p.part_marque)} des plaintes</div>` +
+      (p.definition ? `<div class="f-note">Titre, définition et catégorie proposés par un modèle de langue local, à vérifier en lisant quelques plaintes.</div>` : "");
+    f.querySelector(".f-titre").textContent = p.nom;
+    f.querySelector(".f-def").textContent = p.definition || "";
+    f.querySelector(".f-mots").textContent = p.mots && p.mots !== p.nom ? "mots : " + p.mots : "";
+    if (p.categorie) f.querySelectorAll(".tag")[1].textContent = p.categorie;
+    f.style.display = "block";
+  }
+  function focaliser(cle) {
+    etat.focus = etat.focus === cle ? null : cle; viser(); legende();
+    const cible = etat.focus === null ? new THREE.Vector3() : centre(etat.focus);
+    allerA(cible, etat.focus === null ? distVue() : DIST_FOCUS, 1.4);
+  }
+  const distVue = () => etat.dispo === "langues" ? DIST_LANGUES : DIST;
+  // déplace la caméra vers un point, à une distance donnée ; en 2D, on regarde toujours de face
+  function allerA(cible, dist, duree) {
+    gsap.to(controles.target, { x: cible.x, y: cible.y, z: cible.z, duration: duree, ease: "power3.inOut" });
+    const dir = etat.plat ? new THREE.Vector3(0, 0, dist).add(cible)
+                          : camera.position.clone().sub(controles.target).normalize().multiplyScalar(dist).add(cible);
+    gsap.to(camera.position, { x: dir.x, y: dir.y, z: dir.z, duration: duree, ease: "power3.inOut" });
+  }
+  window.focaliserProbleme = id => {
+    if (etat.couleur !== "probleme") document.querySelector('#modeCouleur [data-v="probleme"]').click();
+    if (etat.dispo !== "carte") document.querySelector('#modeDispo [data-v="carte"]').click();
+    etat.focus = null; window.scrollTo({ top: 0, behavior: "smooth" }); setTimeout(() => focaliser(id), 600);
+  };
+  addEventListener("keydown", e => { if (e.key === "Escape" && etat.focus !== null) focaliser(etat.focus); });
+
+  // ------------------------------------------------------------------ bulle au survol d'un point
+  const bulle = document.getElementById("bulle");
+  const rayon = new THREE.Raycaster(); rayon.params.Points.threshold = 0.09;
+  const souris = new THREE.Vector2(); let survolPoint = -1;
+  function bulleProbleme(p, ancre) {
+    bulle.innerHTML = `<b></b><div class="d" style="margin:3px 0;font-style:italic"></div>${fr(p.taille)} plaintes, ${Object.keys(p.langues).length} langue(s)<br>statut : ${STATUTS[p.statut].nom}`;
+    bulle.querySelector(".d").textContent = p.definition || "";
+    bulle.querySelector("b").textContent = `Problème ${p.id} : ${court(p.nom, 5)}`;
+    const r = ancre.getBoundingClientRect(), g = couche.getBoundingClientRect();
+    bulle.style.left = (r.right - g.left + 10) + "px"; bulle.style.top = (r.top - g.top - 6) + "px"; bulle.style.opacity = 1;
+  }
+  function cacherBulle() { bulle.style.opacity = 0; }
+  rendu.domElement.addEventListener("pointermove", e => {
+    const r = rendu.domElement.getBoundingClientRect();
+    souris.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    rayon.setFromCamera(souris, camera);
+    const touches = rayon.intersectObject(nuage).filter(t => alpha[t.index] > 0.2);
+    if (!touches.length) { if (survolPoint >= 0) { survolPoint = -1; cacherBulle(); } return; }
+    const i = touches[0].index; survolPoint = i;
+    const p = probleme[P.probleme[i]];
+    bulle.innerHTML = `<b></b><br>langue : ${nomLangue(P.langues[P.langue[i]])}<br>période : ${R.periodes[P.periode[i]]}` +
+      (p ? `<br>statut : ${STATUTS[p.statut].nom}` : "");
+    bulle.querySelector("b").textContent = p ? `Problème ${p.id} : ${court(p.nom, 4)}` : "Plainte isolée (aucun problème)";
+    bulle.style.left = (e.clientX - r.left + 16) + "px"; bulle.style.top = (e.clientY - r.top + 12) + "px"; bulle.style.opacity = 1;
+  });
+  rendu.domElement.addEventListener("pointerleave", cacherBulle);
+  rendu.domElement.addEventListener("click", () => { if (survolPoint >= 0 && P.probleme[survolPoint] >= 0 && etat.couleur === "probleme") focaliser(P.probleme[survolPoint]); });
+
+  // ------------------------------------------------------------------ commandes
+  function segm(id, rappel) {
+    document.querySelectorAll(`#${id} button`).forEach(b => b.addEventListener("click", () => {
+      document.querySelectorAll(`#${id} button`).forEach(x => x.classList.toggle("actif", x === b)); rappel(b.dataset.v); }));
+  }
+  segm("modeCouleur", v => { etat.couleur = v; etat.focus = null; etat.survol = null; viser(); legende();
+    gsap.to(controles.target, { x: 0, y: 0, z: 0, duration: 1 }); });
+  segm("modeDispo", v => { etat.dispo = v; etat.focus = null; viser(); legende(); allerA(new THREE.Vector3(), distVue(), 1.6); });
+  document.getElementById("bigbang").addEventListener("click", () => { disperser(); });
+  const bascule = (id, rappel) => { const b = document.getElementById(id); b.addEventListener("click", () => { b.classList.toggle("on"); rappel(b.classList.contains("on")); }); };
+  bascule("isolees", v => { etat.isolees = v; viser(); });
+  const boutonRotation = document.getElementById("rotation");
+  bascule("rotation", v => { controles.autoRotate = v && !etat.plat; });
+  bascule("plat", v => {   // 2D : les plaintes s'aplatissent, la caméra se met de face, on ne peut plus tourner
+    etat.plat = v; viser();
+    controles.enableRotate = !v; controles.autoRotate = !v && boutonRotation.classList.contains("on");
+    boutonRotation.disabled = v; boutonRotation.style.opacity = v ? 0.4 : 1;
+    allerA(etat.focus === null ? new THREE.Vector3() : centre(etat.focus), etat.focus === null ? distVue() : DIST_FOCUS, 1.2);
+  });
+  document.getElementById("voirLegende").addEventListener("click", () => document.getElementById("legende").classList.toggle("ouverte"));
+  if (innerWidth <= 1000) document.getElementById("voirLegende").style.display = "inline-block";
+
+  const curseur = document.getElementById("curseur"), affichee = document.getElementById("periodeAffichee"), grande = document.getElementById("grandePeriode");
+  curseur.max = R.periodes.length; curseur.value = 0;
+  function fenetre(k) {   // k = 0 : toutes les périodes ; k >= 1 : la période k - 1
+    etat.fenetre = k === 0 ? null : k - 1; curseur.value = k;
+    affichee.textContent = k === 0 ? "toutes" : R.periodes[k - 1];
+    grande.textContent = k === 0 ? "" : R.periodes[k - 1]; viser();
+  }
+  curseur.addEventListener("input", () => fenetre(+curseur.value));
+  let minuteur = null; const jouer = document.getElementById("jouer");
+  jouer.addEventListener("click", () => {
+    if (minuteur) { clearInterval(minuteur); minuteur = null; jouer.textContent = "▶"; return; }
+    jouer.textContent = "❚❚"; let k = 1; fenetre(k);
+    minuteur = setInterval(() => { k++; if (k > R.periodes.length) { clearInterval(minuteur); minuteur = null; jouer.textContent = "▶"; fenetre(0); return; } fenetre(k); }, 1100);
+  });
+
+  // ------------------------------------------------------------------ boucle
+  function taille_() {
+    const w = conteneur.clientWidth, h = conteneur.clientHeight;
+    rendu.setSize(w, h); camera.aspect = w / h;
+    // sur grand écran, la galaxie se décale vers le haut et la gauche : la légende occupe la droite, les commandes le bas
+    if (w > 1000) camera.setViewOffset(w, h, w * 0.05, h * 0.08, w, h); else camera.clearViewOffset();
+    camera.updateProjectionMatrix();
+    matiere.uniforms.echelle.value = h * rendu.getPixelRatio() / 2;
+  }
+  addEventListener("resize", taille_); taille_();
+  viser(); legende();
+  // premier regroupement : col et taille partent de la cible, les positions partent de la sphère
+  col.set(colCible); taille.set(tailleCible);
+  let galaxieVisible = true;
+  new IntersectionObserver(e => galaxieVisible = e[0].isIntersecting).observe(conteneur);
+  (function boucle() {
+    requestAnimationFrame(boucle);
+    if (!galaxieVisible) return;
+    const k = 0.045, kc = 0.09;
+    for (let i = 0; i < N * 3; i++) { pos[i] += (posCible[i] - pos[i]) * k; col[i] += (colCible[i] - col[i]) * kc; }
+    for (let i = 0; i < N; i++) { alpha[i] += (alphaCible[i] - alpha[i]) * kc; taille[i] += (tailleCible[i] - taille[i]) * kc; }
+    geo.attributes.position.needsUpdate = geo.attributes.couleur.needsUpdate = geo.attributes.alpha.needsUpdate = geo.attributes.taille.needsUpdate = true;
+    controles.update(); rendu.render(scene, camera); placerEtiquettes();
+  })();
+}
+
+// ==================================================================================== chiffres clés
+function chiffres(R) {
+  const ch = R.chiffres;
+  const cartes = [[ch.plaintes, "plaintes lues"], [ch.langues, "langues détectées"], [ch.problemes, "problèmes trouvés"],
+    [Math.round(100 * (1 - ch.part_cote)), "% des plaintes rangées dans un problème"], [ch.alertes, "alertes levées"],
+    [ch.campagnes + ch.pics, "saisons et campagnes écartées"]];
+  const zone = document.getElementById("chiffres");
+  zone.innerHTML = cartes.map(([v, t]) => `<div class="chiffre"><b data-v="${v}">0</b><span>${t}</span></div>`).join("");
+  gsap.from(".chiffre", { y: 40, opacity: 0, duration: 0.9, stagger: 0.08, ease: "power3.out", delay: 0.3 });
+  zone.querySelectorAll("b").forEach(b => { const o = { v: 0 };
+    gsap.to(o, { v: +b.dataset.v, duration: 2.2, ease: "power2.out", delay: 0.5, onUpdate: () => b.textContent = fr(Math.round(o.v)) }); });
+}
+
+// ==================================================================================== graphiques ECharts
+const THEME = {
+  color: [C.rouge, C.chocolat, C.ambre, C.cacao, C.corail, C.taupe, C.bordeaux],
+  textStyle: { fontFamily: "Inter, sans-serif", color: C.chocolat },
+  title: { textStyle: { fontFamily: "Fraunces, serif", color: C.noir } },
+  tooltip: { backgroundColor: "rgba(22,13,9,.92)", borderColor: "rgba(233,220,207,.15)", textStyle: { color: "#E9DCCF", fontFamily: "Inter" } },
+};
+echarts.registerTheme("chocolat", THEME);
+const graphesActifs = [];
+function nouveau(id) { const g = echarts.init(document.getElementById(id), "chocolat", { renderer: "canvas" }); graphesActifs.push(g); return g; }
+addEventListener("resize", () => graphesActifs.forEach(g => g.resize()));
+function quandVisible(id, f) {   // le graphique se dessine (et s'anime) quand on arrive dessus
+  ScrollTrigger.create({ trigger: "#" + id, start: "top 85%", once: true, onEnter: f });
+}
+const axeCat = (data, extra = {}) => ({ type: "category", data, axisLine: { lineStyle: { color: C.lait } }, axisTick: { show: false },
+  axisLabel: { color: C.taupe, fontSize: 10.5, rotate: 60 }, ...extra });
+const axeVal = (extra = {}) => ({ type: "value", splitLine: { lineStyle: { color: "#F1E8DF" } }, axisLabel: { color: C.taupe }, ...extra });
+
+function graphes(R) {
+  gsap.registerPlugin(ScrollTrigger);
+  document.querySelectorAll("section.bloc").forEach(s => gsap.from(s.querySelector(".entete"), { scrollTrigger: { trigger: s, start: "top 85%" }, y: 30, opacity: 0, duration: 0.9, ease: "power3.out" }));
+
+  // ---------------------------------------------------------------- 01 volume
+  const moyenne = R.plaintes_par_periode.reduce((a, b) => a + b, 0) / R.periodes.length;
+  const couleursSeg = [C.chocolat, C.rouge, C.ambre, C.cacao, C.corail, C.taupe, C.bordeaux];
+  function optVolume(mode) {
+    const base = { grid: { left: 44, right: 18, top: 30, bottom: 64 }, tooltip: { trigger: "axis" }, xAxis: axeCat(R.periodes), yAxis: axeVal(),
+      animationDuration: 1400, animationEasing: "cubicOut", animationDelay: i => i * 40 };
+    if (mode === "total") return { ...base, series: [{ type: "bar", name: "plaintes", barWidth: "62%",
+      data: R.plaintes_par_periode.map(v => ({ value: v, itemStyle: { borderRadius: [5, 5, 0, 0],
+        color: v > 1.25 * moyenne ? new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: C.braise }, { offset: 1, color: C.bordeaux }])
+                                  : new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: "#C9906F" }, { offset: 1, color: C.cacao }]) } })),
+      markLine: { symbol: "none", silent: true, lineStyle: { color: C.noir, type: "dashed" },
+        label: { formatter: `moyenne ${fr(moyenne)}`, position: "insideStartTop", color: C.noir, fontFamily: "Fraunces" }, data: [{ yAxis: moyenne }] } }] };
+    return { ...base, legend: { top: 0, textStyle: { color: C.chocolat } },
+      series: Object.entries(R.segments).map(([s, v], k) => ({ type: "bar", stack: "s", name: s, data: v, barWidth: "62%",
+        itemStyle: { color: couleursSeg[k % couleursSeg.length] }, emphasis: { focus: "series" } })) };
+  }
+  quandVisible("volume", () => {
+    const g = nouveau("volume"); g.setOption(optVolume("total"));
+    document.querySelectorAll("#modeVolume button").forEach(b => b.addEventListener("click", () => {
+      document.querySelectorAll("#modeVolume button").forEach(x => x.classList.toggle("actif", x === b)); g.setOption(optVolume(b.dataset.v), true); }));
+  });
+
+  // ---------------------------------------------------------------- langues
+  quandVisible("langues", () => {
+    const g = nouveau("langues");
+    // les langues de moins de 10 plaintes forment une seule part, comme dans la méthode ; l'infobulle les détaille
+    const tri = Object.entries(R.langues).sort((a, b) => b[1] - a[1]);
+    const grandes = tri.filter(([, n]) => n >= 10), rares = tri.filter(([, n]) => n < 10);
+    const parts = grandes.map(([l, n]) => ({ name: nomLangue(l), value: n }));
+    if (rares.length) parts.push({ name: rares.length + " autres langues", value: rares.reduce((s, [, n]) => s + n, 0),
+      detail: rares.map(([l, n]) => nomLangue(l) + " " + fr(n)).join(", ") });
+    g.setOption({ title: { text: "Les langues", left: 6, top: 4, textStyle: { fontSize: 18 } }, tooltip: { confine: true, extraCssText: "max-width:280px;white-space:normal",
+        formatter: p => `${p.name} : ${fr(p.value)} plaintes (${fr(p.percent)} %)` + (p.data.detail ? "<br>" + p.data.detail : "") },
+      series: [{ type: "pie", roseType: "radius", radius: ["18%", "66%"], center: ["50%", "56%"], itemStyle: { borderRadius: 8, borderColor: "#fff", borderWidth: 2 },
+        label: { formatter: "{b}\n{d} %", color: C.chocolat, fontFamily: "Fraunces", fontSize: 13, overflow: "none" },
+        labelLayout: { hideOverlap: true }, avoidLabelOverlap: true,
+        animationType: "scale", animationEasing: "elasticOut", animationDuration: 1600,
+        data: parts.map((p, k) => ({ ...p, itemStyle: { color: [C.chocolat, C.rouge, C.ambre, C.cacao, C.corail, C.taupe][k % 6] } })) }] });
+  });
+
+  // ---------------------------------------------------------------- 02 relief
+  const ordreStatut = { "incident candidat": 0, "campagne": 1, "pic partagé": 2, "fond": 3 };
+  const lignes = [...R.problemes].sort((a, b) => ordreStatut[a.statut] - ordreStatut[b.statut] || b.taille - a.taille);
+  const nomsLignes = lignes.map(p => `${p.id}  ${court(p.nom, 2)}`);
+  const cleAlerte = new Set(R.alertes.map(a => `${a.probleme}|${a.periode}`));
+  const cellules = [], cellulesAlerte = [];
+  lignes.forEach((p, y) => R.periodes.forEach((t, x) => {
+    const r = p.attendu[x] > 0 ? p.observe[x] / p.attendu[x] : 0;
+    const v = [x, y, Math.min(r, 10), p.observe[x], p.attendu[x]];
+    (cleAlerte.has(`${p.id}|${t}`) ? cellulesAlerte : cellules).push(v);
+  }));
+  const echelleRatio = { min: 0, max: 8, inRange: { color: ["#E3D5C8", "#F6EDE4", "#F3C9B4", C.corail, C.rouge, C.bordeaux] } };
+  const bulleRelief = p => { const [x, y, r, o, e] = p.value; return `<b>${nomsLignes[y]}</b><br>${R.periodes[x]} : ${o} plaintes, ${fr(e, 1)} attendues<br>${r >= 1 ? "×" + fr(r, 1) : "moins qu'attendu"}`; };
+  function optRelief(mode) {
+    if (mode === "3d") return {
+      tooltip: { formatter: bulleRelief },
+      visualMap: { show: true, dimension: 2, ...echelleRatio, seriesIndex: 0, calculable: false, right: 10, top: 20, itemHeight: 160,
+        text: ["×8", "rien"], textStyle: { color: C.taupe } },
+      xAxis3D: { type: "category", data: R.periodes, name: "", axisLabel: { color: C.taupe, fontSize: 10, interval: 1 } },
+      yAxis3D: { type: "category", data: nomsLignes, name: "", axisLabel: { color: C.chocolat, fontSize: 10.5, interval: 0 } },
+      zAxis3D: { type: "value", name: "", max: 10, axisLabel: { color: C.taupe, formatter: v => "×" + v } },
+      grid3D: { boxWidth: 210, boxDepth: 150, boxHeight: 70, environment: "#fff",
+        axisLine: { lineStyle: { color: C.lait } }, splitLine: { lineStyle: { color: "#F1E8DF" } }, axisPointer: { lineStyle: { color: C.corail } },
+        viewControl: { alpha: 32, beta: 38, distance: 260, autoRotate: false, animationDurationUpdate: 1600 },
+        light: { main: { intensity: 1.15, shadow: true, shadowQuality: "high", alpha: 40, beta: 30 }, ambient: { intensity: 0.45 } },
+        postEffect: { enable: true, SSAO: { enable: true, radius: 3, intensity: 1.1 } }, temporalSuperSampling: { enable: true } },
+      series: [
+        { type: "bar3D", data: cellules, shading: "lambert", bevelSize: 0.35, bevelSmoothness: 4, barSize: 5.6,
+          itemStyle: { opacity: 1 }, emphasis: { itemStyle: { color: C.ambre } }, animationDurationUpdate: 1500, animationEasingUpdate: "cubicOut" },
+        { type: "bar3D", data: cellulesAlerte, shading: "realistic", bevelSize: 0.35, bevelSmoothness: 4, barSize: 6.4,
+          realisticMaterial: { roughness: 0.35, metalness: 0.1 }, itemStyle: { color: C.braise }, emphasis: { itemStyle: { color: C.ambre } },
+          label: { show: true, formatter: p => "alerte", textStyle: { color: C.bordeaux, fontSize: 12, fontWeight: 600, backgroundColor: "rgba(255,255,255,.85)", padding: [2, 6], borderRadius: 4 } } },
+      ] };
+    return {
+      tooltip: { formatter: bulleRelief },
+      grid: { left: 190, right: 90, top: 16, bottom: 70 },
+      xAxis: axeCat(R.periodes, { splitArea: { show: false } }), yAxis: { type: "category", data: nomsLignes, inverse: true, axisTick: { show: false },
+        axisLine: { show: false }, axisLabel: { color: C.chocolat, fontSize: 11 } },
+      visualMap: { ...echelleRatio, dimension: 2, orient: "vertical", right: 8, top: "middle", itemHeight: 220, text: ["×8", "rien"], textStyle: { color: C.taupe } },
+      series: [{ type: "heatmap", data: [...cellules, ...cellulesAlerte], itemStyle: { borderColor: "#fff", borderWidth: 1.5, borderRadius: 3 },
+                 emphasis: { itemStyle: { borderColor: C.noir, borderWidth: 2 } }, animationDuration: 1200 },
+               { type: "scatter", data: cellulesAlerte.map(v => [v[0], v[1]]), symbol: "rect", symbolSize: [30, 22], silent: true, z: 5,
+                 itemStyle: { color: "transparent", borderColor: C.noir, borderWidth: 2.5 } }] };
+  }
+  quandVisible("relief", () => {
+    const g = nouveau("relief"); g.setOption(optRelief("3d"));
+    document.querySelectorAll("#modeRelief button").forEach(b => b.addEventListener("click", () => {
+      document.querySelectorAll("#modeRelief button").forEach(x => x.classList.toggle("actif", x === b)); g.setOption(optRelief(b.dataset.v), true); }));
+  });
+
+  // ---------------------------------------------------------------- 03 alertes
+  const parIncident = {};
+  R.alertes.forEach(a => (parIncident[`${a.probleme}|${a.marque}`] ??= []).push(a));
+  const zone = document.getElementById("alertes");
+  Object.values(parIncident).forEach((liste, k) => {
+    liste.sort((a, b) => b.observe - a.observe); const a = liste[0];
+    const periodes = [...liste].sort((x, y) => x.periode.localeCompare(y.periode)).map(x => x.periode).join(" et ");
+    const fois = a.attendu > 0 ? a.observe / a.attendu : 0;
+    const hasard = a.q < 1e-9 ? "moins d'une chance sur un milliard" : a.q < 1e-6 ? "moins d'une chance sur un million" : a.q < 1e-3 ? "moins d'une chance sur mille" : "moins d'une chance sur cent";
+    const d = document.createElement("div"); d.className = "alerte";
+    d.innerHTML = `<div class="haut"><small>${a.marque}, ${periodes}</small><h3></h3></div>
+      <div class="corps"><div class="gros"><b>${fr(a.observe)}</b><span>plaintes en ${a.periode}<br>au lieu de ${fr(a.attendu, 1)} attendues</span><span class="fois">×${fr(fois)}</span></div>
+      <p>La marque porte <b>${pct(a.part_pic)}</b> des plaintes de ce problème sur la période. Que ce soit le hasard : ${hasard}.</p>
+      <div class="mini" id="mini${k}"></div></div>`;
+    d.querySelector("h3").textContent = `Problème ${a.probleme} : ${court(a.nom, 4)}`;
+    if (a.definition) { const q = document.createElement("p"); q.className = "def"; q.textContent = a.definition; d.querySelector(".corps").prepend(q); }
+    zone.appendChild(d);
+    quandVisible(`mini${k}`, () => {
+      const g = nouveau(`mini${k}`);
+      g.setOption({ grid: { left: 30, right: 6, top: 12, bottom: 22 }, tooltip: { trigger: "axis" },
+        xAxis: axeCat(R.periodes, { axisLabel: { show: false } }), yAxis: axeVal({ minInterval: 1, axisLabel: { color: C.taupe, fontSize: 10 } }),
+        series: [{ name: a.marque, type: "bar", stack: "s", data: a.serie_marque, itemStyle: { color: C.rouge, borderRadius: [0, 0, 0, 0] }, barWidth: "68%" },
+                 { name: "autres marques", type: "bar", stack: "s", data: a.serie_autres, itemStyle: { color: C.lait, borderRadius: [3, 3, 0, 0] } }],
+        animationDuration: 1300, animationDelay: i => i * 35 });
+    });
+  });
+  if (!R.alertes.length) zone.innerHTML = `<div class="autre">Aucune alerte : aucun problème n'est concentré sur une marque et une période.</div>`;
+  document.getElementById("autres").innerHTML = R.problemes.filter(p => p.statut === "pic partagé" || p.statut === "campagne").map(p => {
+    const pic = R.pics_periode.filter(x => x.probleme === p.id).map(x => x.periode);
+    const quoi = p.statut === "campagne"
+      ? `${pct(p.quasi_doublons)} de ses plaintes ont une jumelle presque identique : un même message envoyé par beaucoup de gens. Ce n'est pas un défaut de production.`
+      : `Il monte${pic.length ? " en " + pic.join(", ") : ""} chez plusieurs marques à la fois : une saison ou un phénomène général, pas un incident d'une marque.`;
+    return `<div class="autre ${p.statut === "campagne" ? "campagne" : ""}"><b>Problème ${p.id}</b><span class="tag ${STATUTS[p.statut].cl}">${STATUTS[p.statut].nom}</span>
+      <div style="color:#8C776C;font-style:italic;margin:3px 0 5px">${esc(court(p.nom, 4))}</div>${p.definition ? `<div style="margin:0 0 5px">${esc(p.definition)}</div>` : ""}${quoi}</div>`;
+  }).join("");
+
+  // ---------------------------------------------------------------- 04 mosaïque des problèmes
+  quandVisible("treemap", () => {
+    const g = nouveau("treemap");
+    const couleurStatut = { "incident candidat": C.rouge, "campagne": C.cacao, "pic partagé": C.ambre, "fond": "#B9A496" };
+    g.setOption({ tooltip: { extraCssText: "max-width:340px;white-space:normal", formatter: p => `<b>Problème ${p.data.id}</b><br>${esc(p.data.nomComplet)}<br>${p.data.definition ? "<i>" + esc(p.data.definition) + "</i><br>" : ""}${p.data.categorie ? "catégorie : " + esc(p.data.categorie) + "<br>" : ""}${fr(p.value)} plaintes, ${STATUTS[p.data.statut].nom}` },
+      series: [{ type: "treemap", roam: false, nodeClick: false, breadcrumb: { show: false }, width: "100%", height: "100%", top: 0, left: 0,
+        itemStyle: { borderColor: "#fff", borderWidth: 3, gapWidth: 3, borderRadius: 10 },
+        label: { show: true, formatter: p => `{n|${p.data.id}}\n{m|${court(p.data.nomComplet, 3)}}\n{t|${fr(p.value)} plaintes}`,
+          rich: { n: { fontFamily: "Fraunces", fontSize: 22, fontWeight: 600, color: "#fff", lineHeight: 28 },
+                  m: { fontSize: 12.5, color: "rgba(255,255,255,.92)", lineHeight: 18 }, t: { fontSize: 11, color: "rgba(255,255,255,.7)" } } },
+        animationDuration: 1500, animationEasing: "cubicOut",
+        data: R.problemes.map(p => ({ id: p.id, name: String(p.id), nomComplet: p.nom, definition: p.definition, categorie: p.categorie, statut: p.statut, value: p.taille,
+          itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [{ offset: 0, color: couleurStatut[p.statut] }, { offset: 1, color: echarts.color.modifyHSL(couleurStatut[p.statut], null, null, -0.12) }]) } })) }] });
+    g.on("click", p => window.focaliserProbleme(p.data.id));
+  });
+
+  // ---------------------------------------------------------------- 05 vérification
+  if (R.evaluation) {
+    document.getElementById("b-verif").style.display = "block";
+    const E = R.evaluation;
+    // depuis le 24/10/2026 : rappel avant la fusion des jumeaux ; les anciens fichiers donnent rappel_tfidf
+    const avantFusion = E.groupes.length > 0 && E.groupes[0].rappel_avant_fusion !== undefined;
+    const avant = x => avantFusion ? x.rappel_avant_fusion : x.rappel_tfidf;
+    document.getElementById("verdict").innerHTML =
+      `<div><b>${E.alertes_retrouvees} sur ${E.alertes_attendues}</b>alertes attendues retrouvées</div>` +
+      `<div><b>${E.fausses_alertes}</b>fausse${E.fausses_alertes > 1 ? "s" : ""} alerte${E.fausses_alertes > 1 ? "s" : ""}</div>` +
+      `<div><b>${pct(E.groupes.reduce((a, g) => a + g.rappel, 0) / E.groupes.length)}</b>rappel moyen de la méthode, contre ${pct(E.groupes.reduce((a, g) => a + avant(g), 0) / E.groupes.length)} ${avantFusion ? "avant la fusion des jumeaux" : "pour la méthode simple"}</div>`;
+    const noms = { C1_campagne: "campagne\nadditif", I1_savon: "incident\ngoût de savon", I2_plastique: "incident\nplastique bleu",
+      I3_recette: "incident\nrecette chat", S1_fondu: "saison\nchocolat fondu" };
+    quandVisible("rappel", () => {
+      const g = nouveau("rappel");
+      const etiquette = c => ({ show: true, position: "top", formatter: p => pct(p.value), color: c, fontFamily: "Fraunces", fontWeight: 600, fontSize: 13 });
+      g.setOption({ legend: { top: 0, textStyle: { color: C.chocolat } }, grid: { left: 50, right: 16, top: 44, bottom: 50 }, tooltip: { trigger: "axis", valueFormatter: v => pct(v) },
+        xAxis: axeCat(E.groupes.map(x => noms[x.groupe] || x.groupe), { axisLabel: { color: C.chocolat, rotate: 0, fontSize: 12 } }),
+        yAxis: axeVal({ max: 1.1, axisLabel: { color: C.taupe, formatter: v => v <= 1 ? pct(v) : "" } }),
+        series: [{ name: avantFusion ? "avant la fusion des jumeaux" : "méthode simple (TF-IDF)", type: "bar", data: E.groupes.map(avant), itemStyle: { color: C.lait, borderColor: C.taupe, borderRadius: [6, 6, 0, 0] }, label: etiquette(C.taupe), barGap: "8%" },
+                 { name: avantFusion ? "après la fusion des jumeaux" : "méthode du TP (plongements centrés)", type: "bar", data: E.groupes.map(x => x.rappel),
+                   itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: C.braise }, { offset: 1, color: C.bordeaux }]), borderRadius: [6, 6, 0, 0] }, label: etiquette(C.bordeaux) }],
+        animationDuration: 1600, animationDelay: i => i * 120, animationEasing: "elasticOut" });
+    });
+  }
+}
+
+// ==================================================================================== fenêtre d'aide
+const aide = document.getElementById("aide");
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-aide]"); if (!b) return;
+  const a = AIDES[b.dataset.aide];
+  aide.querySelector("h3").textContent = a.t; aide.querySelector(".quoi").textContent = a.q;
+  aide.querySelector("ul").innerHTML = a.l.map((x, k) => `<li data-n="${k + 1}"></li>`).join("");
+  aide.querySelectorAll("li").forEach((li, k) => li.textContent = a.l[k]);
+  aide.querySelector(".retenir").textContent = "À retenir : " + a.r;
+  aide.style.display = "flex";
+  gsap.fromTo(aide.querySelector(".carte"), { y: 30, opacity: 0, scale: .97 }, { y: 0, opacity: 1, scale: 1, duration: .45, ease: "power3.out" });
+});
+aide.addEventListener("click", e => { if (e.target === aide || e.target.classList.contains("fermer")) aide.style.display = "none"; });
+addEventListener("keydown", e => { if (e.key === "Escape") aide.style.display = "none"; });
+
+// ==================================================================================== 06 comparer les outils
+function comparer(K) {
+  document.getElementById("b-outils").style.display = "block";
+  const M = [...K.modeles];
+  // les paramètres sont exportés en millions depuis le 21/10/2026 (un entier de 10 chiffres pourrait contenir un numéro de cas)
+  M.forEach(m => { if (m.parametres === undefined) m.parametres = (m.parametres_millions || 0) * 1e6; });
+  const fictive = K.base === "fictive" && M.every(m => m.ari_verite !== undefined);
+  const qualite = m => fictive ? m.ari_verite : m.stabilite;
+  const nomQualite = fictive ? "accord avec la vérité (ARI)" : "stabilité du regroupement";
+  const DU_TP = "Qwen3-Embedding-0.6B";
+  // couleurs : TF-IDF en taupe, les transformers du caramel au bordeaux selon leur taille
+  const parTaille = M.filter(m => m.transformer).sort((a, b) => a.parametres - b.parametres);
+  const degrade = ["#E4A857", "#E39A55", "#E8765C", "#D95B45", "#C0392B", "#9E2A1F", "#7B1E16"];
+  const couleur = {}; M.forEach(m => couleur[m.nom] = m.transformer ? degrade[Math.round(parTaille.indexOf(m) * (degrade.length - 1) / Math.max(parTaille.length - 1, 1))] : C.taupe);
+  const params = m => m.parametres ? (m.parametres >= 1e9 ? fr(m.parametres / 1e9, 1) + " G" : fr(m.parametres / 1e6) + " M") : "aucun";
+  const sec = s => s < 1 ? fr(s, 2) + " s" : s < 60 ? fr(s, 1) + " s" : fr(s / 60, 1) + " min";
+
+  // ---------------------------------------------------------------- podium
+  const meilleur = [...M].sort((a, b) => qualite(b) - qualite(a))[0];
+  const rapide = [...M].filter(m => m.transformer).sort((a, b) => a.t_calcul - b.t_calcul)[0];
+  const tp = M.find(m => m.nom === DU_TP);
+  const rang = tp ? [...M].sort((a, b) => qualite(b) - qualite(a)).indexOf(tp) + 1 : null;
+  document.getElementById("podium").innerHTML =
+    `<div><b>${meilleur.nom}</b>${fictive ? "le plus juste" : "le plus stable (sans vérité connue, on ne mesure pas la justesse)"} : ${pct(qualite(meilleur))} de ${nomQualite}</div>` +
+    (rapide ? `<div><b>${rapide.nom}</b>le transformer le plus rapide : ${sec(rapide.secondes_par_1000)} pour 1 000 plaintes</div>` : "") +
+    (tp ? `<div><b>${tp.nom}</b>le modèle du TP : ${rang}<sup>${rang === 1 ? "er" : "e"}</sup> sur ${M.length} en qualité, ${sec(tp.secondes_par_1000)} pour 1 000 plaintes</div>` : "");
+
+  // ---------------------------------------------------------------- qualité contre vitesse
+  const taille = m => m.parametres ? 16 + 9 * Math.log10(m.parametres / 5e7) : 14;
+  const bulle = m => `<b>${m.nom}</b><br>${params(m)} paramètres${m.licence ? ", licence " + m.licence : ""}<br>` +
+    `${sec(m.secondes_par_1000)} pour 1 000 plaintes<br>${nomQualite} : ${pct(qualite(m))}` +
+    (fictive ? `<br>alertes retrouvées : ${m.alertes_retrouvees} sur ${m.alertes_attendues}, fausses : ${m.fausses_alertes}` : "");
+  // une seule étiquette par paquet de bulles qui se touchent : « 5 modèles, 2 problèmes trouvés »
+  const etiquette = {}, chefs = [];
+  [...M].sort((a, b) => qualite(b) - qualite(a)).forEach(m => {
+    const lx = Math.log10(Math.max(m.secondes_par_1000, 0.005));
+    const chef = chefs.find(c => Math.abs(c.lx - lx) < 0.6 && Math.abs(c.y - qualite(m)) < 0.06);
+    if (chef) chef.membres.push(m); else chefs.push({ lx, y: qualite(m), membres: [m] });
+  });
+  chefs.forEach(c => {
+    const pb = new Set(c.membres.map(m => m.problemes));
+    etiquette[c.membres[0].nom] = c.membres.length === 1 ? c.membres[0].nom
+      : `${c.membres.length} modèles${pb.size === 1 ? `, ${[...pb][0]} problème${[...pb][0] > 1 ? "s" : ""} trouvé${[...pb][0] > 1 ? "s" : ""}` : ""}`;
+  });
+  const g1 = echarts.getInstanceByDom(document.getElementById("compromis")) || nouveau("compromis");
+  g1.setOption({
+    title: { text: "Qualité contre vitesse", left: 6, top: 4, textStyle: { fontSize: 18 } },
+    tooltip: { formatter: p => bulle(p.data.m) },
+    grid: { left: 58, right: 150, top: 64, bottom: 56 },
+    xAxis: { type: "log", name: "secondes pour 1 000 plaintes", nameLocation: "middle", nameGap: 32, nameTextStyle: { color: C.taupe },
+      splitLine: { lineStyle: { color: "#F1E8DF" } }, axisLabel: { color: C.taupe, formatter: v => fr(v, v < 1 ? 2 : 0) } },
+    yAxis: { type: "value", name: nomQualite, nameTextStyle: { color: C.taupe, align: "left" }, min: 0, max: 1,
+      splitLine: { lineStyle: { color: "#F1E8DF" } }, axisLabel: { color: C.taupe, formatter: v => pct(v) } },
+    series: [{ type: "scatter", data: M.map(m => ({ value: [Math.max(m.secondes_par_1000, 0.005), qualite(m)], m, symbolSize: taille(m),
+        itemStyle: { color: couleur[m.nom], borderColor: "#fff", borderWidth: 2, shadowBlur: 14, shadowColor: "rgba(123,30,22,.25)" },
+        label: { show: !!etiquette[m.nom], formatter: etiquette[m.nom] || m.nom, position: "right", color: C.chocolat, fontSize: 11.5 } })),
+      labelLayout: { hideOverlap: true, moveOverlap: "shiftY" },
+      emphasis: { scale: 1.25, label: { show: true } }, animationDuration: 1600, animationEasing: "elasticOut", animationDelay: i => i * 120,
+      markPoint: tp ? { symbol: "circle", symbolSize: taille(tp) + 18, silent: true, label: { show: false },
+        itemStyle: { color: "transparent", borderColor: C.rouge, borderWidth: 2, borderType: "dashed" },
+        data: [{ coord: [Math.max(tp.secondes_par_1000, 0.005), qualite(tp)] }] } : undefined }],
+  }, true);
+
+  // ---------------------------------------------------------------- temps
+  const parTemps = [...M].sort((a, b) => (a.t_chargement + a.t_calcul) - (b.t_chargement + b.t_calcul));
+  const g2 = echarts.getInstanceByDom(document.getElementById("temps")) || nouveau("temps");
+  g2.setOption({
+    title: { text: "Le temps", subtext: `${fr(K.plaintes)} plaintes, ${K.carte}`, left: 6, top: 4, textStyle: { fontSize: 18 }, subtextStyle: { color: C.taupe } },
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: v => sec(v) },
+    legend: { bottom: 0, textStyle: { color: C.chocolat } }, grid: { left: 150, right: 40, top: 70, bottom: 40 },
+    xAxis: axeVal({ axisLabel: { color: C.taupe, formatter: v => v + " s" } }),
+    yAxis: { type: "category", data: parTemps.map(m => m.nom), axisTick: { show: false }, axisLine: { show: false }, axisLabel: { color: C.chocolat } },
+    series: [{ name: "chargement", type: "bar", stack: "t", data: parTemps.map(m => m.t_chargement), itemStyle: { color: C.lait }, barWidth: "58%" },
+             { name: "calcul des vecteurs", type: "bar", stack: "t", data: parTemps.map(m => ({ value: m.t_calcul, itemStyle: { color: couleur[m.nom] } })),
+               itemStyle: { borderRadius: [0, 6, 6, 0] }, label: { show: true, position: "right", color: C.chocolat, fontSize: 11,
+                 formatter: p => sec(parTemps[p.dataIndex].t_chargement + parTemps[p.dataIndex].t_calcul) } }],
+    animationDuration: 1400, animationDelay: i => i * 90,
+  }, true);
+
+  // ---------------------------------------------------------------- coût
+  const tarif = document.getElementById("tarif");
+  if (!tarif.value) tarif.value = K.tarif_heure;
+  let volume = 1;
+  const g3 = echarts.getInstanceByDom(document.getElementById("cout")) || nouveau("cout");
+  function dessinerCout() {
+    const n = volume === 1 ? K.plaintes : volume, t = +tarif.value || 0;
+    const secondes = m => m.t_chargement + m.secondes_par_1000 * n / 1000;
+    const cout = m => secondes(m) / 3600 * t;
+    const L = [...M].sort((a, b) => cout(a) - cout(b));
+    const dollars = v => v < 0.01 ? "< 0,01 $" : fr(v, 2) + " $";
+    g3.setOption({
+      tooltip: { formatter: p => `<b>${L[p.dataIndex].nom}</b><br>${fr(n)} plaintes : ${sec(secondes(L[p.dataIndex]))} de carte graphique<br>coût : ${dollars(p.value)}` },
+      grid: { left: 150, right: 70, top: 22, bottom: 28 },
+      xAxis: axeVal({ axisLabel: { color: C.taupe, formatter: v => v === 0 ? "0" : v < 0.1 ? fr(v, 3) + " $" : fr(v, 2) + " $" } }),
+      yAxis: { type: "category", data: L.map(m => m.nom), axisTick: { show: false }, axisLine: { show: false }, axisLabel: { color: C.chocolat } },
+      series: [{ type: "bar", barWidth: "58%", data: L.map(m => ({ value: cout(m), itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 1, 0,
+          [{ offset: 0, color: C.lait }, { offset: 1, color: couleur[m.nom] }]), borderRadius: [0, 6, 6, 0] } })),
+        label: { show: true, position: "right", color: C.bordeaux, fontFamily: "Fraunces", fontWeight: 600, formatter: p => dollars(p.value) } }],
+      animationDurationUpdate: 900,
+    });
+  }
+  tarif.oninput = dessinerCout;
+  document.querySelectorAll("#volumeCout button").forEach(b => b.onclick = () => {
+    document.querySelectorAll("#volumeCout button").forEach(x => x.classList.toggle("actif", x === b)); volume = +b.dataset.v; dessinerCout(); });
+  dessinerCout();
+
+  // ---------------------------------------------------------------- mémoire
+  const parMemoire = [...M].sort((a, b) => a.memoire_go - b.memoire_go);
+  const g4 = echarts.getInstanceByDom(document.getElementById("memoire")) || nouveau("memoire");
+  g4.setOption({
+    title: { text: "La mémoire de la carte graphique", left: 6, top: 4, textStyle: { fontSize: 18 } },
+    tooltip: { formatter: p => `<b>${parMemoire[p.dataIndex].nom}</b><br>${fr(p.value, 1)} Go au plus fort, ${params(parMemoire[p.dataIndex])} paramètres` },
+    grid: { left: 150, right: 60, top: 60, bottom: 30 },
+    xAxis: axeVal({ max: 16, axisLabel: { color: C.taupe, formatter: v => v + " Go" } }),
+    yAxis: { type: "category", data: parMemoire.map(m => m.nom), axisTick: { show: false }, axisLine: { show: false }, axisLabel: { color: C.chocolat } },
+    series: [{ type: "bar", barWidth: "58%", data: parMemoire.map(m => ({ value: m.memoire_go, itemStyle: { color: couleur[m.nom], borderRadius: [0, 6, 6, 0] } })),
+      showBackground: true, backgroundStyle: { color: "#F7EFE7", borderRadius: [0, 6, 6, 0] },
+      label: { show: true, position: "right", color: C.chocolat, formatter: p => p.value ? fr(p.value, 1) + " Go" : "processeur" },
+      markLine: { symbol: "none", silent: true, lineStyle: { color: C.noir, type: "dashed" }, label: { formatter: "carte T4 : 16 Go", color: C.noir }, data: [{ xAxis: 16 }] } }],
+    animationDuration: 1400,
+  }, true);
+
+  // ---------------------------------------------------------------- qualité en détail
+  const nomsGroupes = { I1_savon: "goût de savon", I2_plastique: "plastique bleu", I3_recette: "recette chat", S1_fondu: "saison (fondu)", C1_campagne: "campagne" };
+  let colonnes, valeur, texte;
+  if (fictive) {
+    const groupes = Object.keys(M[0].rappels);
+    // colonne 0 : l'ARI (la mesure principale) ; puis le rappel de chaque groupe caché ; puis les alertes
+    const ng = groupes.length;
+    colonnes = ["accord (ARI)", ...groupes.map(g => "rappel " + (nomsGroupes[g] || g)), "alertes retrouvées", "fausses alertes"];
+    valeur = (m, j) => j === 0 ? m.ari_verite : j <= ng ? m.rappels[groupes[j - 1]] : j === ng + 1 ? m.alertes_retrouvees / Math.max(m.alertes_attendues, 1) : 1 - Math.min(m.fausses_alertes / 3, 1);
+    texte = (m, j) => j === 0 ? fr(m.ari_verite, 2) : j <= ng ? pct(m.rappels[groupes[j - 1]]) : j === ng + 1 ? `${m.alertes_retrouvees} / ${m.alertes_attendues}` : String(m.fausses_alertes);
+  } else {
+    colonnes = ["stabilité", "problèmes trouvés", "plaintes rangées"];
+    const maxP = Math.max(...M.map(m => m.problemes));
+    valeur = (m, j) => j === 0 ? m.stabilite : j === 1 ? m.problemes / maxP : 1 - m.part_cote;
+    texte = (m, j) => j === 0 ? fr(m.stabilite, 2) : j === 1 ? String(m.problemes) : pct(1 - m.part_cote);
+  }
+  const lignesQ = [...M].sort((a, b) => qualite(a) - qualite(b));
+  const donnees = []; lignesQ.forEach((m, i) => colonnes.forEach((_, j) => donnees.push({ value: [j, i, valeur(m, j)], t: texte(m, j) })));
+  const g5 = echarts.getInstanceByDom(document.getElementById("qualite")) || nouveau("qualite");
+  g5.setOption({
+    title: { text: "La qualité en détail", subtext: fictive ? "base fictive : comparaison aux groupes cachés" : "base réelle : sans vérité connue", left: 6, top: 4, textStyle: { fontSize: 18 }, subtextStyle: { color: C.taupe } },
+    tooltip: { formatter: p => `<b>${lignesQ[p.value[1]].nom}</b><br>${colonnes[p.value[0]]} : ${p.data.t}` },
+    grid: { left: 170, right: 20, top: 92, bottom: 20 },
+    xAxis: { type: "category", data: colonnes, position: "top", axisTick: { show: false }, axisLine: { show: false },
+      axisLabel: { color: C.chocolat, fontSize: 11.5, interval: 0, lineHeight: 15, formatter: v => v.replace(/^rappel /, "rappel\n").replace(/^alertes /, "alertes\n").replace(/^fausses /, "fausses\n").replace(/^accord /, "accord\n") } },
+    yAxis: { type: "category", data: lignesQ.map(m => `${m.nom}\n${m.problemes} problème${m.problemes > 1 ? "s" : ""} trouvé${m.problemes > 1 ? "s" : ""}`), axisTick: { show: false }, axisLine: { show: false },
+      axisLabel: { color: C.chocolat, fontSize: 12, lineHeight: 16, formatter: v => v.startsWith(DU_TP + "\n") ? `{tp|${v.split("\n")[0]}}\n{n|${v.split("\n")[1]}}` : `${v.split("\n")[0]}\n{n|${v.split("\n")[1]}}`,
+        rich: { tp: { color: C.rouge, fontWeight: 600, fontSize: 12 }, n: { color: C.taupe, fontSize: 10.5 } } } },
+    visualMap: { show: false, min: 0, max: 1, inRange: { color: ["#F3E9E0", "#F3C9B4", C.corail, C.rouge, C.bordeaux] } },
+    series: [{ type: "heatmap", data: donnees, label: { show: true, formatter: p => p.data.t, fontFamily: "Fraunces", fontWeight: 600, fontSize: 13,
+        color: "#fff", textBorderColor: "rgba(59,34,25,.45)", textBorderWidth: 2 },
+      itemStyle: { borderColor: "#fff", borderWidth: 3, borderRadius: 8 }, animationDuration: 1200 }],
+  }, true);
+}
+
+// ==================================================================================== départ
+const enAttente = sessionStorageGet();
+const comparaisonEnAttente = retrouver("comparaison"), nomsEnAttente = retrouver("noms");
+if (comparaisonEnAttente) window.COMPARAISON = comparaisonEnAttente;
+if (nomsEnAttente) window.NOMS_PROBLEMES = nomsEnAttente;
+if (enAttente) demarrer(enAttente);
+else if (window.RESULTATS && window.RESULTATS.format === "tableau_de_bord_plaintes") demarrer(window.RESULTATS);
+else depot.style.display = "flex";
+if (window.COMPARAISON && window.COMPARAISON.format === "comparaison_modeles") comparer(window.COMPARAISON);
+</script>
+</body>
+</html>

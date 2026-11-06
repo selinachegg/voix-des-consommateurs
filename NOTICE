@@ -1,0 +1,14 @@
+Éléments de tiers (hors de la licence du dépôt)
+
+Dans tableau_de_bord/lib/ :
+- ECharts : Apache-2.0
+- ECharts GL : BSD-3-Clause
+- three.js et OrbitControls : MIT
+- GSAP et ScrollTrigger : licence standard de GSAP
+- Polices Fraunces et Inter : SIL Open Font License 1.1
+
+Dans docs_etudiants/figures/logos/ : logos de Microsoft, Qwen (Alibaba), BAAI et
+Sentence-Transformers, marques de leurs détenteurs respectifs, reproduits pour
+identifier les modèles cités.
+
+Bibliothèques et modèles appelés par les notebooks : soumis à leurs propres licences.

@@ -1,0 +1,74 @@
+% Annexe : cosinus, similarité et distance (exercices 2.1 et 3.2), en images.
+
+\section{Cosinus : similarité et distance (exercices 2.1 et 3.2)}
+
+\subsection{Le cosinus regarde l'angle entre deux flèches}
+
+Chaque plainte, et chaque centre de groupe, est une \textbf{flèche} (un vecteur). Le \textbf{cosinus} ne
+regarde pas la longueur des flèches, seulement l'\textbf{angle} entre elles : il dit si elles pointent dans
+la même direction, donc si les deux textes parlent de la même chose.
+
+\begin{center}
+\begin{tikzpicture}[fl/.style={-{Stealth[length=3mm]}, line width=1.6pt}]
+\foreach \dx/\ang/\cosv/\dv/\titre/\coul in {0/8/1/0/même direction/accentblue, 5.4/60/0{,}5/0{,}5/à moitié/ambre, 10.8/90/0/1/rien en commun/slate} {
+  \begin{scope}[xshift=\dx cm]
+  \fill[palblue!40, rounded corners=6pt] (-0.6,-1.7) rectangle (4.2,2.9);
+  \node[font=\small\bfseries, color=\coul] at (1.8,2.55) {\titre};
+  \draw[fl, color=sectioncolor] (0,0) -- (3.2,0);
+  \draw[fl, color=\coul] (0,0) -- (\ang:2.3);
+  \ifnum\ang>10 \draw[color=\coul, thick] (0.75,0) arc (0:\ang:0.75); \node[font=\scriptsize, color=\coul] at ({\ang/2}:1.1) {\ang\textdegree}; \fi
+  \node[font=\small, anchor=west] at (-0.4,-0.65) {$\cos = \cosv$};
+  \node[font=\small, anchor=west] at (-0.4,-1.25) {distance $1 - \cos = \dv$};
+  \end{scope}
+}
+\end{tikzpicture}
+\end{center}
+{\small\color{slate}\textit{Flèche rouge : une plainte ; flèche colorée : une autre plainte. Seul l'angle compte.}}
+
+\subsection{Deux façons de dire la même chose}
+
+\begin{tcbraster}[raster columns=2, raster equal height, raster column skip=8pt, raster every box/.style={unbreakable}]
+\begin{conceptbox}[title={\faHeart\ La similarité cosinus}, unbreakable]
+\small \textbf{Grande} quand les textes se ressemblent : 1 pour la même direction, 0 pour rien en commun.
+C'est elle qu'on lit dans les seuils du TP (\og cosinus $> 0{,}4$ \fg, voisine \og au-delà de 0,9 \fg).
+\end{conceptbox}
+\begin{conceptbox}[title={\faRulerHorizontal\ La distance cosinus}, unbreakable]
+\small \textbf{Petite} quand les textes se ressemblent : $d = 1 - \cos$. C'est ce que demandent certaines
+fonctions de scikit-learn, comme la fusion des jumeaux (\texttt{metric="cosine"}).
+\end{conceptbox}
+\end{tcbraster}
+
+\begin{center}
+\begin{tikzpicture}[x=1.35cm]
+% règle du cosinus (en haut) et de la distance (en bas), alignées
+\shade[left color=accentblue!70, right color=palblue] (0,0) rectangle (10,0.45);
+\draw[slate] (0,0) rectangle (10,0.45);
+\foreach \x/\c/\d in {0/1/0, 2/0{,}8/0{,}2, 4/0{,}6/0{,}4, 6/0{,}4/0{,}6, 8/0{,}2/0{,}8, 10/0/1} {
+  \draw[slate] (\x,0.45) -- (\x,0.6); \node[above, font=\small] at (\x,0.6) {\c};
+  \draw[slate] (\x,0) -- (\x,-0.15); \node[below, font=\small] at (\x,-0.15) {\d};
+}
+\node[left, font=\small\bfseries, color=accentblue] at (-0.25,0.85) {cosinus};
+\node[left, font=\small\bfseries, color=darkblue] at (-0.25,-0.45) {distance};
+% seuil de la fusion des jumeaux
+\draw[very thick, dashed, color=sectioncolor] (6,-0.05) -- (6,0.5);
+\draw[very thick, dashed, color=sectioncolor] (6,1.12) -- (6,1.38);
+\draw[very thick, dashed, color=sectioncolor] (6,-0.62) -- (6,-0.95);
+\node[font=\footnotesize\bfseries, color=sectioncolor, align=center] at (6,1.75) {seuil par défaut\\$\cos = 0{,}4$, $d = 0{,}6$};
+\draw[-{Stealth[length=3mm]}, very thick, color=accentblue] (5.85,-1.15) -- (0.2,-1.15)
+  node[midway, below, font=\footnotesize] {on fusionne : $\cos > 0{,}4$, donc $d < 0{,}6$};
+\draw[-{Stealth[length=3mm]}, very thick, color=slate] (6.15,-1.15) -- (9.8,-1.15)
+  node[midway, below, font=\footnotesize] {on ne fusionne pas};
+\end{tikzpicture}
+\end{center}
+
+\begin{lire}
+\textbf{Comment lire la règle.} Le haut donne le cosinus, le bas la distance au même endroit : les deux
+nombres d'une même graduation font toujours 1 à eux deux. \og Fusionner deux groupes si le cosinus de leurs
+centres dépasse 0,4 \fg{} et \og fusionner si leur distance est inférieure à 0,6 \fg{} désignent donc
+exactement la même zone, à gauche du trait. Dans le code, on règle le cosinus et la conversion se fait toute
+seule : \texttt{distance\_threshold = 1 - cosinus\_min}. Le réglage automatique (exercice 3.3) peut monter le
+seuil à $\cos > 0{,}7$, soit $d < 0{,}3$ : il ne fusionne alors que des groupes très proches.
+\end{lire}
+
+\image{deux personnes qui montrent une direction du doigt : peu importe la longueur du bras, on regarde
+seulement si elles montrent le même endroit.}

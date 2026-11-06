@@ -1,0 +1,265 @@
+% Annexe : les outils expliqués (babel, py3langid, expressions régulières et nettoyage, centrage par langue).
+
+\bandeaupartie{Annexe : les outils expliqués}{babel, py3langid, les expressions régulières du nettoyage,\\et le centrage par langue expliqué avec des notes de classe.}
+
+\section{babel : le nom des langues en clair}
+
+\begin{stepbox}[title={\faLanguage\quad Ce que c'est}]
+\texttt{babel} est une bibliothèque Python d'\textbf{internationalisation} : pour chaque langue d'affichage,
+elle connaît les noms des langues et des pays, les formats de dates, de nombres et de monnaies. Elle les
+tire du \textbf{CLDR} (\emph{Common Locale Data Repository}), la base de référence du consortium Unicode,
+celle qu'utilisent aussi les navigateurs et les systèmes d'exploitation.
+\end{stepbox}
+
+\begin{stepbox}[title={\faCogs\quad Ce qu'elle fait dans le notebook}]
+Une seule chose : écrire en clair le nom des langues détectées. Le détecteur de langue (ci-dessous) ne
+renvoie qu'un \textbf{code}, comme \texttt{fr}, \texttt{nl} ou \texttt{ary}. babel le traduit en nom
+français :
+\begin{lstlisting}[escapeinside={(*}{*)}]
+from babel import Locale
+NOMS_CLDR = Locale("fr").languages      # un dictionnaire : code -> nom en français
+NOMS_CLDR["nl"]                          # 'néerlandais'
+NOMS_CLDR["ary"]                         # 'arabe marocain'
+\end{lstlisting}
+Quelques codes rares que le CLDR ne nomme pas sont complétés à la main dans \texttt{COMPLEMENT\_LANGUES}
+(par exemple \texttt{zxx}, \og sans contenu linguistique \fg). Le nom affiché est donc, dans l'ordre : le
+complément s'il existe, sinon le nom donné par babel, sinon le code lui-même.
+\end{stepbox}
+
+\begin{tcbraster}[raster columns=2, raster equal height, raster column skip=8pt, raster every box/.style={unbreakable}]
+\begin{conceptbox}[title={\faDownload\ Installée en 0.2}, unbreakable]
+\small Elle n'est pas dans l'image Kaggle par défaut : la cellule 0.2 l'installe avec \texttt{py3langid}.
+Si elle manque, rien ne plante : les langues s'affichent par leur code.
+\end{conceptbox}
+\begin{conceptbox}[title={\faLock\ Ne touche pas aux plaintes}, unbreakable]
+\small Elle ne lit aucun texte et n'envoie rien sur internet. Elle ne joue aucun rôle dans les vecteurs, les
+groupes ou les alertes : elle sert seulement à l'affichage.
+\end{conceptbox}
+\end{tcbraster}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{py3langid : quelle langue pour chaque plainte}
+
+\begin{stepbox}[title={\faSearch\quad Ce que c'est}]
+\texttt{py3langid} est un \textbf{détecteur de langue} : on lui donne un texte, il renvoie le code de la
+langue la plus probable. C'est la version modernisée de \texttt{langid.py}. Son modèle, un petit modèle
+probabiliste (Bayes naïf), a appris sur des textes de plus d'une centaine de langues quelles
+\textbf{suites de caractères} sont typiques de chacune : \og ijk \fg{} en néerlandais, \og sch \fg{} en
+allemand, \og eau \fg{} en français. Il est livré avec le paquet et tourne sur le processeur, sans internet
+et sans carte graphique, en une fraction de seconde pour toute la base.
+\end{stepbox}
+
+\begin{stepbox}[title={\faCogs\quad Ce qu'il fait dans le notebook (exercice 1.4)}]
+\begin{lstlisting}[escapeinside={(*}{*)}]
+import py3langid
+py3langid.classify("Bonjour, le chocolat avait un go(*\^u*)t de savon.")
+# ('fr', -209.3)  : le code de la langue, puis un score
+plaintes["langue"] = [py3langid.classify(t)[0] if t else "?" for t in plaintes.texte]
+\end{lstlisting}
+\texttt{classify} renvoie deux valeurs ; on garde la première, le code (\texttt{[0]}). Le score est une
+\textbf{log-probabilité} : plus il est grand, plus le modèle est sûr, mais ce n'est pas un pourcentage. Un
+texte vide reçoit \texttt{"?"}.
+\doisvoir{une langue pour chaque plainte, et une répartition avec quelques langues principales.}
+\end{stepbox}
+
+\begin{piege}
+\textbf{La langue n'est pas le pays.} L'anglais, le français et l'allemand couvrent chacun plusieurs pays.
+\textbf{Et le détecteur se trompe sur les textes très courts} ou pleins de chiffres et de références : une
+langue qui ne compte qu'une ou deux plaintes est souvent une erreur de détection, pas un vrai pays de plus.
+\end{piege}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Les expressions régulières du nettoyage (exercice 1.2)}
+
+\subsection{re, c'est quoi ?}
+
+\texttt{re} est le module de Python pour les \textbf{expressions régulières} (\emph{regular expressions}).
+Une expression régulière est un \textbf{motif} qui décrit une \emph{forme} de texte, au lieu d'un texte
+exact. Au lieu de chercher le lien précis \texttt{https://exemple.io}, on décrit la forme de tous les liens :
+\og commence par http, peut-être un s, puis ://, puis des caractères sans espace \fg.
+
+\subsection{Comment se lit re.sub}
+
+\texttt{re.sub} veut dire \emph{substitute}, remplacer. Elle prend toujours trois choses, dans cet ordre :
+\begin{center}
+\begin{tikzpicture}[b/.style={draw=#1, fill=#1!10, rounded corners=4pt, font=\small, align=center, minimum height=1cm, text width=3.6cm}]
+\node[b=sectioncolor] (m) {\textbf{1. le motif}\\ce qu'on cherche};
+\node[b=accentblue, right=0.4cm of m] (r) {\textbf{2. le remplacement}\\par quoi on le remplace};
+\node[b=darkblue, right=0.4cm of r] (t) {\textbf{3. le texte}\\où on cherche};
+\node[above=0.15cm of r, font=\ttfamily\small] {re.sub( motif , remplacement , texte )};
+\end{tikzpicture}
+\end{center}
+Elle renvoie le texte modifié. Exemple : \verb|re.sub(r"\*{2,}", " ", texte)| se lit \og dans
+\texttt{texte}, remplace chaque suite de deux étoiles ou plus par une espace \fg.
+
+\begin{tcbraster}[raster columns=2, raster equal height, raster column skip=8pt, raster every box/.style={unbreakable}]
+\begin{conceptbox}[title={Le \texttt{r} devant le motif}, unbreakable]
+\small \verb|r"..."| est un texte \og brut \fg{} : Python garde les barres \verb|\| telles quelles et les
+passe au motif.
+\end{conceptbox}
+\begin{conceptbox}[title={\texttt{texte}, à la fin}, unbreakable]
+\small C'est la variable qui contient la plainte à nettoyer. Le résultat de chaque ligne remplace
+\texttt{texte}, et la ligne suivante repart de lui.
+\end{conceptbox}
+\end{tcbraster}
+
+\subsection{Les briques pour lire les motifs}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\rowcolors{2}{notebg}{white}
+\begin{tabular}{@{}>{\centering\arraybackslash}p{2.2cm}p{11.8cm}@{}}
+\rowcolor{titlebg}\color{white}\textbf{symbole} & \color{white}\textbf{veut dire} \\
+\verb|^| & le tout début du texte \\
+\verb|\s| & un \og blanc \fg{} : espace, tabulation, retour à la ligne \\
+\verb|\S| & tout sauf un blanc \\
+\verb|*| & 0 fois ou plus le symbole d'avant \\
+\verb|+| & 1 fois ou plus le symbole d'avant \\
+\verb|?| & 0 ou 1 fois le symbole d'avant : il est facultatif \\
+\verb|{2,}| & 2 fois ou plus le symbole d'avant \\
+\verb|\*| & une vraie étoile (la barre empêche de la lire comme \og 0 fois ou plus \fg) \\
+\verb|[.!?]| & un seul caractère parmi ceux de la liste \\
+\verb|[^\W\d_]| & une lettre, de n'importe quel alphabet (ni chiffre, ni ponctuation, ni \_) \\
+\verb|(...)| et \verb|\1| & on capture un morceau, puis on le remet tel quel dans le remplacement \\
+\verb|(?=...)| & regarde ce qui suit, sans le consommer ni le modifier \\
+\end{tabular}
+\end{center}
+
+\subsection{Les cinq étapes de nettoyer, une par une}
+
+\begin{lstlisting}[escapeinside={(*}{*)}]
+def nettoyer(texte):
+    texte = re.sub(r"^\s*EXTERNAL", "", texte)               # 1
+    texte = re.sub(r"https?://\S+", " ", texte)               # 2
+    texte = re.sub(r"\*{2,}", " ", texte)                     # 3
+    texte = re.sub(r"([.!?;:,(*\textcolor{accentblue}{\textsf{\scriptsize virgule arabe}}*)])(?=[^\W\d_])", r"\1 ", texte) # 4
+    return re.sub(r"\s+", " ", texte).strip()                 # 5
+\end{lstlisting}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.35}
+\rowcolors{2}{notebg}{white}
+\begin{tabular}{@{}>{\bfseries\color{sectioncolor}}c p{6.4cm}p{6.6cm}@{}}
+\rowcolor{titlebg}\color{white}\# & \color{white}\textbf{ce que fait le motif} & \color{white}\textbf{exemple} \\
+1 & au début du texte (\verb|^|), des blancs ou rien, puis le mot EXTERNAL : supprimé & \texttt{EXTERNALBonjour} $\to$ \texttt{Bonjour} \\
+2 & \texttt{http}, un \texttt{s} facultatif, \texttt{://}, puis tout jusqu'au premier blanc : le lien entier devient une espace & \texttt{voir https://exemple.io/aB3} $\to$ \texttt{voir \textvisiblespace} \\
+3 & deux étoiles ou plus (les produits masqués) : une espace & \texttt{acheté ******* hier} $\to$ \texttt{acheté \textvisiblespace\textvisiblespace\textvisiblespace hier} \\
+4 & une ponctuation suivie directement d'une lettre : on garde la ponctuation (\verb|\1|) et on ajoute une espace & \texttt{Bonjour,J'ai} $\to$ \texttt{Bonjour, J'ai} ; \texttt{3.5} ne bouge pas \\
+5 & les espaces simples : chaque groupe de blancs devient une seule espace, puis \texttt{.strip()} enlève les blancs du début et de la fin & \texttt{acheté \textvisiblespace\textvisiblespace\textvisiblespace hier} $\to$ \texttt{acheté hier} \\
+\end{tabular}
+\end{center}
+{\small\color{slate}\textit{Le signe \textvisiblespace{} montre une espace.}}
+
+\subsection{L'étape 5 et strip, en détail}
+
+\begin{stepbox}[title={5\quad Des espaces simples}]
+La dernière ligne fait deux choses, de gauche à droite.
+\begin{enumerate}[nosep]
+\item \verb|re.sub(r"\s+", " ", texte)| : \verb|\s+| veut dire \og un blanc ou plus, d'affilée \fg. Chaque
+  groupe de blancs, qu'il compte 1 ou 10 espaces, tabulations ou retours à la ligne, devient \textbf{une
+  seule espace}.
+\item \texttt{.strip()} n'est pas du \texttt{re} : c'est une méthode de tout texte Python. Elle enlève les
+  blancs au \textbf{début} et à la \textbf{fin}, jamais au milieu :
+  \verb|"  Bonjour le monde  ".strip()| donne \verb|"Bonjour le monde"|.
+\end{enumerate}
+Cette étape est nécessaire parce que les étapes d'avant \textbf{créent} des espaces en trop :
+\begin{lstlisting}[escapeinside={(*}{*)}]
+départ      : "EXTERNALBonjour, j'ai acheté ******* hier"
+après 1     : "Bonjour, j'ai acheté ******* hier"
+après 3     : "Bonjour, j'ai acheté   hier"     (trois espaces)
+après 5     : "Bonjour, j'ai acheté hier"       (une seule)
+\end{lstlisting}
+Un lien en fin de message devient lui aussi une espace finale, que \texttt{.strip()} retire.
+\image{après avoir découpé des étiquettes dans une lettre, on referme les trous pour que le texte se lise d'une traite.}
+\end{stepbox}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Le centrage par langue, avec des notes de classe (exercice 2.3)}
+
+\subsection{Deux professeurs, deux façons de noter}
+
+\begin{tcbraster}[raster columns=2, raster equal height, raster column skip=8pt, raster every box/.style={unbreakable}]
+\begin{bloc}[sectioncolor]{\faUserTie\quad La classe du professeur dur}
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\rowcolors{2}{notebg}{white}
+\begin{tabular}{lr}
+\textbf{élève} & \textbf{note} \\
+Ali & 6 \\
+Bea & 8 \\
+Chloé & 9 \\
+Dan & 10 \\
+\textbf{Léa} & \textbf{12} \\
+\end{tabular}
+\end{center}
+Moyenne de la classe : $(6 + 8 + 9 + 10 + 12) / 5 = 45 / 5 = 9$.
+\end{bloc}
+\begin{bloc}[accentblue]{\faUserGraduate\quad La classe du professeur large}
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\rowcolors{2}{notebg}{white}
+\begin{tabular}{lr}
+\textbf{élève} & \textbf{note} \\
+\textbf{Tom} & \textbf{12} \\
+Uma & 14 \\
+Vic & 15 \\
+Wael & 16 \\
+Zoé & 18 \\
+\end{tabular}
+\end{center}
+Moyenne de la classe : $(12 + 14 + 15 + 16 + 18) / 5 = 75 / 5 = 15$.
+\end{bloc}
+\end{tcbraster}
+
+\subsection{Même note, deux histoires opposées}
+
+\begin{tcbraster}[raster columns=2, raster equal height, raster column skip=8pt, raster every box/.style={unbreakable}]
+\begin{kpibox}[title={Léa : $12 - 9 = +3$}, unbreakable]
+\small Léa a 3 points \textbf{de plus} que ce que son professeur donne d'habitude. C'est la
+\textbf{meilleure} de sa classe.
+\end{kpibox}
+\begin{kpibox}[title={Tom : $12 - 15 = -3$}, unbreakable]
+\small Tom a 3 points \textbf{de moins} que ce que son professeur donne d'habitude. C'est le
+\textbf{dernier} de sa classe.
+\end{kpibox}
+\end{tcbraster}
+
+Les deux ont 12. Le $+3$ et le $-3$ montrent la différence ; le 12 brut la cachait. Le
+\textbf{centrage}, c'est juste ça : \textbf{remplacer la note par l'écart à la moyenne de son propre
+professeur}. On ne compare plus des notes, on compare ce que chaque élève a de plus ou de moins que sa
+classe.
+
+\subsection{Le lien avec les plaintes}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.35}
+\rowcolors{2}{notebg}{white}
+\begin{tabular}{@{}p{4.6cm}p{9.4cm}@{}}
+\rowcolor{titlebg}\color{white}\textbf{dans la classe} & \color{white}\textbf{dans le notebook} \\
+le professeur & la \textbf{langue} de la plainte \\
+la note d'un élève & le \textbf{plongement} $\mathbf{e}_i$ de la plainte : 1\,024 nombres au lieu d'un seul \\
+la moyenne de la classe & la moyenne $\boldsymbol{\mu}_\ell$ des plongements de toutes les plaintes de la langue $\ell$ \\
+l'écart $+3$ ou $-3$ & $\mathbf{e}_i - \boldsymbol{\mu}_{\ell(i)}$ : ce que la plainte dit \textbf{de plus} que les autres plaintes de sa langue \\
+\end{tabular}
+\end{center}
+
+Un plongement mélange deux choses : ce que dit la plainte (le sujet) et la façon dont sa langue
+s'exprime (la \og façon de noter \fg{} du professeur). Deux plaintes allemandes sur des sujets différents
+se ressemblent un peu, simplement parce qu'elles sont en allemand. En retirant à chaque plainte la
+moyenne de sa langue, on retire cette part commune, et il reste le sujet : une plainte française et une
+plainte allemande sur le goût de savon se retrouvent alors côte à côte.
+
+\begin{tcbraster}[raster columns=2, raster equal height, raster column skip=8pt, raster every box/.style={unbreakable}]
+\begin{conceptbox}[title={\faRulerCombined\ Puis on renorme}, unbreakable]
+\small Après la soustraction, on divise par la longueur du vecteur (le dénominateur de la formule de
+l'exercice 2.3), pour que toutes les plaintes aient la même longueur, 1.
+\end{conceptbox}
+\begin{conceptbox}[title={\faUsers\ Les petites classes}, unbreakable]
+\small Une moyenne sur deux élèves ne dit rien du professeur. De même, une langue de moins de 10 plaintes
+reçoit la moyenne de \textbf{toutes} les plaintes, pas la sienne.
+\end{conceptbox}
+\end{tcbraster}
+
+\input{fiche_annexe_cosinus}
+\input{fiche_annexe_methodes}
+\input{fiche_annexe_ari}

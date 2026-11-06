@@ -1,0 +1,149 @@
+% Partie 3 du notebook : regrouper les plaintes, nommer et définir les problèmes, mesurer la stabilité.
+
+\bandeaupartie{I. Partie 3 : regrouper les plaintes}{Des piles par sujet, toutes langues confondues, avec un nom et une définition.}
+
+\section{Partie 3 : regrouper}
+
+\begin{stepbox}[title={3.1\quad HDBSCAN : chercher les zones denses}]
+On réduit d'abord les vecteurs centrés à 20 dimensions par une \textbf{analyse en composantes principales}
+(ACP), qui garde les 20 directions où les plaintes diffèrent le plus. Puis \texttt{HDBSCAN} trouve
+\textbf{lui-même} le nombre de groupes, et laisse de côté (étiquette $-1$) les plaintes isolées.
+\illus[0.74\linewidth]{ill_hdbscan.png}{Exemple inventé : quatre zones denses, et des points isolés laissés de côté.}
+\doisvoir{au moins cinq groupes, et moins de la moitié des plaintes laissées de côté.}
+\image{des îles dans la mer : on ne compte que les îles, pas les rochers isolés.}
+\end{stepbox}
+
+\begin{stepbox}[title={3.2\quad Fusionner les groupes jumeaux d'une langue à l'autre}]
+Même après centrage, HDBSCAN trouve parfois \og goût de savon \fg{} en français, puis le même en allemand,
+juste à côté. On compare les \textbf{centres} des groupes : deux groupes dont les centres ont un cosinus
+supérieur à 0,4 parlent du même problème, et on les fusionne (classification ascendante hiérarchique,
+lien moyen, distance cosinus $1 - \cos$, seuil $0{,}6$).
+\begin{center}
+\begin{tikzpicture}[font=\small]
+\foreach \cx/\cy/\col/\lab in {0/0/accentblue/FR, 1.9/0.5/ambre/DE, 0.9/-1.4/darkblue/EN} {
+  \fill[\col!15] (\cx,\cy) circle (0.75);
+  \foreach \a/\r in {10/0.3,80/0.5,150/0.4,220/0.55,290/0.35,340/0.6,40/0.62,190/0.2} \fill[\col] ($(\cx,\cy)+(\a:\r)$) circle (1.6pt);
+  \node[font=\footnotesize\bfseries, color=\col] at ($(\cx,\cy)+(0,0.98)$) {\lab};
+  \node[draw=\col, fill=white, cross out, minimum size=4pt, inner sep=0pt, line width=0.9pt] at (\cx,\cy) {};
+}
+\node[font=\footnotesize, text width=3.2cm, align=center, color=slate] at (1.0,-3.0) {trois groupes jumeaux, centres proches (cosinus $> 0{,}4$)};
+\draw[-{Stealth[length=3.5mm]}, very thick, color=slate] (3.4,-0.3) -- (5.4,-0.3) node[midway, above, font=\footnotesize] {fusion};
+\begin{scope}[xshift=7.6cm, yshift=-0.3cm]
+\fill[accentblue!12] (0,0) ellipse (1.7 and 1.35);
+\foreach \a/\r/\col in {10/0.6/accentblue,80/0.9/ambre,150/0.8/darkblue,220/1.0/accentblue,290/0.7/ambre,340/1.1/darkblue,40/1.2/accentblue,190/0.4/ambre,120/1.1/darkblue,260/0.95/darkblue,20/1.3/ambre,300/1.2/accentblue}
+  \fill[\col] (\a:\r) circle (1.6pt);
+\node[font=\footnotesize\bfseries, color=accentblue] at (0,1.65) {un problème, trois langues};
+\end{scope}
+\end{tikzpicture}
+\end{center}
+\doisvoir{moins de problèmes que de groupes, et des problèmes qui réunissent \textbf{plusieurs langues}.}
+\image{trois piles \og factures \fg, \og Rechnungen \fg, \og bills \fg{} sur trois bureaux voisins : on les met sur une seule étagère.}
+\end{stepbox}
+
+\begin{stepbox}[title={3.3\quad Régler le regroupement sur les données elles-mêmes}]
+Les réglages de 3.1 et 3.2 ont été choisis sur une base d'entraînement. Sur d'autres plaintes, ils peuvent tout
+réunir en un ou deux paquets géants. On essaie donc \textbf{18 réglages} et on choisit sans étiquette.
+\begin{center}
+\begin{tikzpicture}[x=0.82cm, y=0.62cm, font=\footnotesize]
+\node[font=\bfseries\small, color=darkblue] at (6.6,5.0) {3 tailles minimales $\times$ 2 méthodes $\times$ 3 seuils de fusion $= 18$ essais};
+\foreach \t [count=\i] in {5,8,12} \node[color=sectioncolor, font=\footnotesize\bfseries] at (-1.4,3.5-\i*1.15) {taille \t};
+\node[color=slate, font=\footnotesize\bfseries] at (-1.4,3.2) {$\cos >$};
+\foreach \m/\dx in {eom/0,leaf/6.9} {
+  \node[color=accentblue, font=\small\bfseries] at (\dx+2.3,4.05) {méthode \texttt{\m}};
+  \foreach \c [count=\j] in {0{,}4,0{,}55,0{,}7} \node[color=slate] at (\dx+\j*1.55-0.8,3.2) {$\c$};
+  \foreach \i in {1,2,3} \foreach \j in {1,2,3} {
+    \pgfmathsetmacro{\ok}{mod(\i*3+\j+(\dx>0),3)}
+    \ifdim\ok pt<0.5pt \fill[ambre!70] (\dx+\j*1.55-1.45,3.5-\i*1.15-0.45) rectangle (\dx+\j*1.55-0.15,3.5-\i*1.15+0.45);
+    \else \fill[palblue] (\dx+\j*1.55-1.45,3.5-\i*1.15-0.45) rectangle (\dx+\j*1.55-0.15,3.5-\i*1.15+0.45); \fi
+  }
+}
+\fill[accentblue] (1.55*3-1.45,3.5-3*1.15-0.45) rectangle (1.55*3-0.15,3.5-3*1.15+0.45);
+\node[white, font=\scriptsize\bfseries] at (1.55*3-0.8,3.5-3*1.15) {retenu};
+\fill[ambre!70] (0,-1.4) rectangle (0.5,-1.0); \node[right] at (0.55,-1.2) {admis};
+\fill[palblue] (2.6,-1.4) rectangle (3.1,-1.0); \node[right] at (3.15,-1.2) {refusé};
+\fill[accentblue] (5.3,-1.4) rectangle (5.8,-1.0); \node[right] at (5.85,-1.2) {admis et le plus stable};
+\end{tikzpicture}
+\end{center}
+{\small\color{slate}\textit{Schéma : la case \og retenu \fg{} montre un réglage choisi à titre d'exemple ; les autres couleurs sont illustratives, car les essais admis dépendent des données.}}
+
+\begin{tcbraster}[raster columns=3, raster equal height, raster column skip=6pt, raster every box/.style={unbreakable}]
+\begin{conceptbox}[title={\faWeightHanging\ Pas de géant}, unbreakable]
+\small le plus gros problème, \textbf{campagnes exclues}, contient au plus 30 \% des plaintes
+\end{conceptbox}
+\begin{conceptbox}[title={\faEyeSlash\ Pas trop de côté}, unbreakable]
+\small au plus la moitié des plaintes laissées de côté, hors quasi doublons
+\end{conceptbox}
+\begin{conceptbox}[title={\faLayerGroup\ Assez de problèmes}, unbreakable]
+\small au moins 5 problèmes
+\end{conceptbox}
+\end{tcbraster}
+
+Parmi les réglages admis, on garde le \textbf{plus stable} (voir 3.5). Une \textbf{campagne} a le droit
+d'être grosse : on repère d'abord les \textbf{quasi doublons}, les plaintes dont la plus proche voisine
+TF-IDF a un cosinus supérieur à 0,9.
+\textbf{Plan B.} Si aucun réglage de HDBSCAN n'est admis, les plaintes ne forment pas de zones denses
+nettes : on passe à une classification de \textbf{Ward}, qui range chaque plainte dans l'un de $k$ groupes
+($k = 8, 12, 16, 20, 30$), avec les mêmes règles.
+\doisvoir{au moins dix-huit réglages essayés, un réglage admis trouvé, la part de quasi doublons, puis le tableau des essais et les \texttt{réglages retenus}.}
+\end{stepbox}
+
+
+\begin{stepbox}[title={3.4\quad Nommer chaque problème par ses mots caractéristiques}]
+On colle les plaintes d'un problème en un seul document et on pondère chaque mot par sa fréquence
+dans le problème et sa rareté dans les autres (\textbf{c-TF-IDF}) :
+\begin{formulabox}
+\[
+W_{w,g} = \frac{c_{w,g}}{\sum_{w'} c_{w',g}} \times \ln\!\left(1 + \frac{A}{f_w}\right),
+\]
+où $c_{w,g}$ est le nombre d'occurrences du mot $w$ dans les plaintes du problème $g$, $f_w = \sum_g c_{w,g}$
+son nombre total d'occurrences, et $A$ le nombre moyen de mots par problème. Les mots vides (le, the,
+der, bonjour\ldots) sont retirés avant.
+\end{formulabox}
+\doisvoir{un nom pour chaque problème, et un tableau : taille, langues, marque la plus fréquente et sa part, mots.}
+\end{stepbox}
+
+\illus[0.98\linewidth]{3_carte_problemes.png}{Figure 3 du notebook (base fictive) : la carte centrée, colorée par problème.}
+
+\begin{lire}
+\textbf{Comment lire ce graphique.} C'est la carte de droite de la figure 2, colorée cette fois par
+\textbf{problème}. Chaque pastille numérotée est au centre d'un problème ; la légende donne ses mots les
+plus caractéristiques et sa taille. Les points pâles sont les plaintes laissées de côté. Un bon
+regroupement donne des paquets compacts d'une seule couleur ; un problème éparpillé sur toute la carte est
+un fourre-tout, à regarder de près.
+\end{lire}
+
+\begin{stepbox}[title={3.4 bis\quad Une définition pour chaque problème, écrite par un modèle de langue local}]
+\begin{center}
+\begin{tikzpicture}[
+  bx/.style={draw=#1, fill=#1!10, rounded corners=5pt, align=center, font=\footnotesize, text width=3.3cm, minimum height=2.3cm},
+  fl/.style={-{Stealth[length=3mm]}, very thick, color=slate}]
+\node[bx=sectioncolor] (m) {{\Large\faTags}\\\textbf{les mots} du problème\\[2pt]\textbf{+ ses 5 plaintes} les plus proches du centre};
+\node[bx=darkblue, right=0.9cm of m] (l) {{\Large\faRobot}\\\textbf{un LLM} sur la carte graphique de Kaggle\\\texttt{Qwen3-4B-Instruct}};
+\node[bx=accentblue, right=0.9cm of l, text width=4.6cm] (s) {{\Large\faIdCard}\\\textbf{titre} (3 à 6 mots)\\\textbf{définition} (une phrase)\\\textbf{catégorie} (liste fixe de 11)};
+\draw[fl] (m) -- (l); \draw[fl] (l) -- (s);
+\node[below=0.15cm of l, font=\footnotesize, color=accentblue] {\faLock\ rien ne sort du notebook};
+\end{tikzpicture}
+\end{center}
+Les 11 catégories : goût ou odeur, texture ou aspect, corps étranger, emballage ou quantité, santé ou
+allergie, date ou fraîcheur, composition ou ingrédients, prix ou promotion, service ou livraison,
+compliment, autre.
+\doisvoir{une définition pour chaque problème, la plupart des titres écrits par le modèle (au moins 80 \%), une catégorie de la liste pour chaque problème.}
+\image{un stagiaire qui lit cinq lettres d'une pile et écrit une étiquette sur la pile : utile, mais on relit l'étiquette.}
+\end{stepbox}
+
+\begin{stepbox}[title={3.5\quad Les problèmes sont-ils stables ?}]
+On tire trois fois 90 \% des plaintes au hasard, on refait tout le regroupement, et on mesure l'accord
+avec le regroupement complet par l'\textbf{indice de Rand ajusté} (ARI).
+\illus[0.82\linewidth]{ill_stabilite.png}{Exemple inventé : retirer 10 \% des plaintes ne doit pas changer les groupes.}
+\begin{formulabox}
+Pour deux regroupements des mêmes $n$ plaintes, $n_{ij}$ est le nombre de plaintes dans le groupe $i$ du
+premier et le groupe $j$ du second, $a_i = \sum_j n_{ij}$, $b_j = \sum_i n_{ij}$,
+$\Sigma_a = \sum_i \binom{a_i}{2}$ et $\Sigma_b = \sum_j \binom{b_j}{2}$ :
+\[
+\mathrm{ARI} = \frac{\sum_{ij} \binom{n_{ij}}{2} - \Sigma_a \Sigma_b / \binom{n}{2}}
+{\tfrac{1}{2}(\Sigma_a + \Sigma_b) - \Sigma_a \Sigma_b / \binom{n}{2}} .
+\]
+Il vaut 1 pour deux regroupements identiques et 0 en moyenne pour deux regroupements dus au hasard.
+\end{formulabox}
+\doisvoir{trois mesures d'accord, toutes au-dessus de 0,5.}
+\end{stepbox}

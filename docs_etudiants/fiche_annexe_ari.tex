@@ -1,0 +1,96 @@
+% Annexe : la stabilité et l'ARI expliqués simplement (exercice 3.5).
+
+\section{La stabilité et l'ARI, comme dans une classe (exercice 3.5)}
+
+\subsection{Le test : refaire les équipes avec des absents}
+
+Une maîtresse range ses élèves en équipes selon leurs goûts. Un jour, quelques élèves sont absents : elle
+refait les équipes avec ceux qui restent. Si les amis qui étaient ensemble se retrouvent encore ensemble,
+et ceux qui étaient séparés restent séparés, sa façon de faire les équipes est \textbf{fiable}.
+
+Le notebook fait pareil avec les plaintes :
+\begin{center}
+\begin{tikzpicture}[
+  b/.style={draw=#1, fill=#1!10, rounded corners=5pt, align=center, font=\small, text width=3.9cm, minimum height=1.6cm},
+  fl/.style={-{Stealth[length=3mm]}, very thick, color=slate}]
+\node[b=slate] (a) {{\Large\faDatabase}\\toutes les plaintes\\\textbf{rangement complet}};
+\node[b=accentblue, right=1.1cm of a] (b) {{\Large\faRandom}\\on tire \textbf{90 \%} des plaintes\\au hasard};
+\node[b=sectioncolor, right=1.1cm of b] (c) {{\Large\faRedo}\\on refait \textbf{tout} le rangement\\sur ces 90 \%};
+\draw[fl] (a) -- (b); \draw[fl] (b) -- (c);
+\node[b=darkblue, below=0.7cm of b, text width=8.6cm, minimum height=1.1cm] (d) {{\faBalanceScale}\ \ on compare les deux rangements \textbf{sur les mêmes plaintes} : c'est l'ARI};
+\draw[fl] (c.south) |- (d.east);
+\draw[fl] (a.south) |- (d.west);
+\end{tikzpicture}
+\end{center}
+
+\begin{tcbraster}[raster columns=2, raster equal height, raster column skip=8pt, raster every box/.style={unbreakable}]
+\begin{conceptbox}[title={\faRedo\ Trois fois}, unbreakable]
+\small On recommence trois fois. Chaque tirage repart de la base \textbf{complète} : on reste toujours à
+90~\%, on ne descend pas à 80 puis 70~\%. Seules les plaintes tirées changent d'une fois à l'autre.
+\end{conceptbox}
+\begin{conceptbox}[title={\faDiceThree\ Un hasard fixé}, unbreakable]
+\small Les tirages utilisent les graines 1, 2 et 3 : si on relance le notebook, on retombe sur les trois
+mêmes tirages, donc sur les mêmes résultats.
+\end{conceptbox}
+\end{tcbraster}
+
+\subsection{Comment on compte : des paires d'élèves}
+
+On ne compare pas les \textbf{numéros} des équipes : l'équipe \og 1 \fg{} d'un jour peut s'appeler
+\og 2 \fg{} le lendemain, ça ne veut rien dire. On regarde des \textbf{paires} : pour chaque paire d'élèves,
+les deux rangements sont-ils d'accord pour dire \og ensemble \fg{} ou \og séparés \fg{} ?
+
+\begin{center}
+\begin{tikzpicture}[el/.style={circle, draw=#1, fill=#1!15, minimum size=0.8cm, font=\small\bfseries}]
+\node[font=\small\bfseries, color=darkblue] at (1.6,2.3) {lundi};
+\draw[accentblue, thick, rounded corners=8pt] (-0.1,0.6) rectangle (1.5,1.6);
+\draw[accentblue, thick, rounded corners=8pt] (1.7,0.6) rectangle (3.3,1.6);
+\node[el=accentblue] at (0.3,1.1) {A}; \node[el=accentblue] at (1.1,1.1) {B};
+\node[el=ambre] at (2.1,1.1) {C}; \node[el=ambre] at (2.9,1.1) {D};
+\begin{scope}[xshift=5cm]
+\node[font=\small\bfseries, color=darkblue] at (1.6,2.3) {mardi};
+\draw[accentblue, thick, rounded corners=8pt] (-0.1,0.6) rectangle (1.5,1.6);
+\draw[accentblue, thick, rounded corners=8pt] (1.7,0.6) rectangle (2.5,1.6);
+\draw[accentblue, thick, rounded corners=8pt] (2.6,0.6) rectangle (3.4,1.6);
+\node[el=accentblue] at (0.3,1.1) {A}; \node[el=accentblue] at (1.1,1.1) {B};
+\node[el=ambre] at (2.1,1.1) {C}; \node[el=ambre] at (3.0,1.1) {D};
+\end{scope}
+\node[anchor=north west, font=\small, text width=6.2cm] at (9.6,2.4) {
+\begin{tabular}{@{}lll@{}}
+\textbf{paire} & \textbf{lundi, mardi} & \\
+A et B & ensemble, ensemble & \textcolor{accentblue}{\faCheck} \\
+A et C & séparés, séparés & \textcolor{accentblue}{\faCheck} \\
+A et D & séparés, séparés & \textcolor{accentblue}{\faCheck} \\
+B et C & séparés, séparés & \textcolor{accentblue}{\faCheck} \\
+B et D & séparés, séparés & \textcolor{accentblue}{\faCheck} \\
+C et D & ensemble, séparés & \textcolor{sectioncolor}{\faTimes} \\
+\end{tabular}};
+\end{tikzpicture}
+\end{center}
+{\small\color{slate}\textit{Exemple inventé : 4 élèves, 6 paires ; les deux jours sont d'accord sur 5 paires sur 6.}}
+
+\subsection{Pourquoi \og ajusté \fg{} ?}
+
+Compter les paires d'accord donne l'\textbf{indice de Rand}. Mais même deux rangements faits \textbf{au
+hasard} tombent souvent d'accord, surtout sur \og séparés \fg, parce que la plupart des paires sont séparées
+dans n'importe quel rangement. L'indice de Rand \textbf{ajusté} (ARI) retire cette part due au hasard :
+
+\begin{center}
+\begin{tikzpicture}[x=1.35cm]
+\shade[left color=palblue, right color=accentblue!80] (0,0) rectangle (10,0.45);
+\draw[slate] (0,0) rectangle (10,0.45);
+\foreach \x/\v in {0/0, 5/0{,}5, 10/1} { \draw[slate] (\x,0) -- (\x,-0.15); \node[below, font=\small] at (\x,-0.15) {\v}; }
+\node[above, font=\footnotesize, text width=3.4cm, align=center] at (0.9,0.5) {pas mieux que le hasard};
+\node[above, font=\footnotesize\bfseries, color=sectioncolor, text width=3.4cm, align=center] at (5,0.5) {seuil du notebook};
+\node[above, font=\footnotesize, text width=3.4cm, align=center] at (9.1,0.5) {rangements identiques};
+\draw[very thick, dashed, color=sectioncolor] (5,-0.05) -- (5,0.5);
+\end{tikzpicture}
+\end{center}
+
+\doisvoir{trois valeurs d'ARI, une par tirage, toutes au-dessus de 0,5.}
+
+\begin{piege}
+\textbf{Stable ne veut pas dire juste.} Mettre tout le monde dans une seule équipe donne un ARI parfait
+à chaque fois, et ne range rien. C'est pourquoi l'exercice 3.3 écarte d'abord les rangements ratés, et ne
+regarde la stabilité qu'ensuite.
+\end{piege}

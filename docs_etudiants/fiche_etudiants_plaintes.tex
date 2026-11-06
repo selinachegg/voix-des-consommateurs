@@ -1,0 +1,64 @@
+\documentclass[11pt,a4paper]{article}
+\newcommand{\doctype}{Fiche étudiants}
+\input{style_chocolat}
+\setlength{\parindent}{0pt}
+\usetikzlibrary{shapes.misc}
+\setlength{\headheight}{23pt}
+% Fiche des étudiants du TP plaintes : visuelle, sans les réponses des réflexions (elles sont dans le guide
+% de l'encadrante). Les « Tu dois voir » donnent un critère à vérifier, sans chiffre propre à une base.
+
+\definecolor{cacao}{HTML}{A9705A}
+\definecolor{bordeaux}{HTML}{7B1E16}
+\definecolor{ambre}{HTML}{E4A857}
+
+\newtcolorbox{card}[2]{colback=white, colframe=#1, coltitle=white, colbacktitle=#1,
+  fonttitle=\bfseries\large, title={#2}, arc=3pt, boxrule=1pt, equal height group=cards,
+  before upper=\raggedright}
+\newtcolorbox{bloc}[2][sectioncolor]{colback=white, colframe=#1, coltitle=white,
+  colbacktitle=#1, fonttitle=\bfseries, title={#2}, arc=3pt, boxrule=0.8pt,
+  left=8pt, right=8pt, top=6pt, bottom=6pt}
+\newtcolorbox{lire}[1][]{enhanced, colback=notebg, colframe=accentblue, boxrule=0.8pt, arc=4pt,
+  left=40pt, right=10pt, top=6pt, bottom=6pt, breakable,
+  overlay={\node[circle, fill=accentblue, text=white, minimum size=24pt, font=\large]
+    at ([xshift=20pt]frame.west) {\faEye};}, #1}
+
+% logo d'une organisation (figures/logos/)
+\newcommand{\logo}[1]{\raisebox{-0.3\height}{\includegraphics[height=0.42cm]{logos/#1}}\,}
+\newcommand{\chiffre}[1]{{\Large\bfseries\color{darkblue} #1}}
+\newcommand{\doisvoir}[1]{\par\smallskip{\color{accentblue}\faCheckCircle\ \textbf{Tu dois voir :}} #1}
+\newcommand{\image}[1]{\par\smallskip{\color{lightblue}\faChild}\ \textit{#1}}
+\newcommand{\reflexion}[2]{\begin{questionbox}\textbf{\faQuestionCircle\ Réflexion #1.} #2\end{questionbox}}
+% une image et sa légende, jamais séparées par un saut de page
+\newcommand{\illus}[3][\linewidth]{\begin{center}\begin{minipage}{\linewidth}\centering
+  \includegraphics[width=#1]{#2}\\[2pt]{\small\color{slate}\textit{#3}}\end{minipage}\end{center}}
+
+% Couverture : la chaîne du TP plaintes
+\renewcommand{\couverture}{%
+\begin{tikzpicture}[
+  b/.style={draw=##1, fill=##1!12, rounded corners=4pt, minimum width=2.45cm, minimum height=1.25cm,
+    align=center, font=\small},
+  a/.style={-{Stealth[length=2.5mm]}, thick, color=slate}]
+\node[b=slate] (p) {{\Large\faEnvelopeOpenText}\\Plaintes};
+\node[b=darkblue, right=0.45cm of p] (v) {{\Large\faProjectDiagram}\\Vecteurs};
+\node[b=sectioncolor, right=0.45cm of v] (g) {{\Large\faObjectGroup}\\Problèmes};
+\node[b=accentblue, right=0.45cm of g] (i) {{\Large\faExclamationTriangle}\\Incidents};
+\node[b=lightblue, right=0.45cm of i] (t) {{\Large\faChartPie}\\Tableau de bord};
+\draw[a] (p) -- (v); \draw[a] (v) -- (g); \draw[a] (g) -- (i); \draw[a] (i) -- (t);
+\end{tikzpicture}}
+
+\begin{document}
+
+\pagedetitre{École d'automne IA, Alsace Tech}{Hackathon voix du client}
+  {TP plaintes : regrouper pour repérer les incidents}{Fiche étudiants : la chaîne principale, puis la chaîne de comparaison}
+  {transformer des plaintes écrites en plusieurs langues en problèmes nommés, puis repérer ceux qui
+  explosent sur une marque et une période, sans jamais lire ni sortir un texte confidentiel.}
+
+\input{fiche_contexte}
+\input{fiche_lire}
+\input{fiche_regrouper}
+\input{fiche_incidents}
+\input{fiche_outils}
+\input{fiche_lexique}
+\input{fiche_annexe}
+
+\end{document}

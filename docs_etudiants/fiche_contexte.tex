@@ -1,0 +1,192 @@
+% Contexte, vue d'ensemble de la chaîne, mise en route sur Kaggle, règles de confidentialité.
+
+\section{Le problème en une page}
+
+Une entreprise agroalimentaire reçoit chaque mois des centaines de plaintes de consommateurs, dans
+plusieurs pays et plusieurs langues. Chaque plainte est un court texte libre, le \textbf{verbatim},
+accompagné d'un numéro de cas, de la marque (numérotée), du segment d'activité et de la période.
+\textbf{Personne n'a classé ces textes.}
+
+\begin{tcolorbox}[colback=notebg,colframe=sectioncolor,arc=3pt,halign=center,boxrule=1.5pt]
+{\Large\faSearch\quad\bfseries Quand plusieurs consommateurs décrivent le même problème,}\\[2pt]
+{\Large\bfseries peut-on les \textcolor{accentblue}{regrouper} et voir si ce problème se
+\textcolor{accentblue}{concentre} sur une marque et une période ?}
+\end{tcolorbox}
+
+\begin{enfant}
+\textbf{Comme le courrier d'une mairie.} Si dix habitants écrivent la même semaine que l'eau du robinet
+a un goût bizarre, c'est sans doute une canalisation, pas dix coïncidences. Mais si la moitié de la
+ville se plaint du froid en janvier, ce n'est pas une panne : c'est l'hiver. Et si mille lettres
+identiques arrivent le même jour, c'est une pétition. Le TP apprend à faire la différence.
+\end{enfant}
+
+\subsection{Trois phénomènes qui se ressemblent, et qu'il faut séparer}
+
+\begin{center}
+\begin{tikzpicture}[x=0.32cm, y=0.13cm]
+% trois mini-histogrammes : rouge = la marque concernée, beige = les autres marques
+\foreach \nom/\dx/\titre/\coul in {inc/0/Incident/accentblue, sai/17/Saison/ambre, cam/34/Campagne/cacao} {
+  \node[font=\bfseries, color=\coul] at (\dx+6.5,30) {\titre};
+  \draw[slate!60] (\dx-0.5,0) -- (\dx+13.5,0);
+}
+% incident : une seule marque explose sur une période
+\foreach \x/\a/\m in {0/3/0,1/2/1,2/4/0,3/3/1,4/2/0,5/3/0,6/3/16,7/4/2,8/2/0,9/3/1,10/2/0,11/3/0,12/2/0,13/3/1} {
+  \fill[palblue] (\x-0.4,0) rectangle (\x+0.4,\a); \fill[accentblue] (\x-0.4,\a) rectangle (\x+0.4,\a+\m);}
+% saison : toutes les marques montent ensemble
+\foreach \x/\a/\m in {0/3/1,1/3/0,2/4/1,3/5/1,4/9/3,5/14/3,6/16/4,7/13/3,8/7/2,9/4/1,10/3/0,11/3/1,12/2/0,13/3/0} {
+  \fill[palblue] (17+\x-0.4,0) rectangle (17+\x+0.4,\a); \fill[accentblue] (17+\x-0.4,\a) rectangle (17+\x+0.4,\a+\m);}
+% campagne : un gros paquet de messages presque identiques
+\foreach \x/\a/\m in {0/1/0,1/1/0,2/2/0,3/1/0,4/1/0,5/12/6,6/14/8,7/9/4,8/1/0,9/2/0,10/1/0,11/1/0,12/1/0,13/2/0} {
+  \fill[palblue] (34+\x-0.4,0) rectangle (34+\x+0.4,\a); \fill[accentblue] (34+\x-0.4,\a) rectangle (34+\x+0.4,\a+\m);}
+\node[font=\footnotesize, text width=4.9cm, align=center] at (6.5,-6) {une \textbf{seule marque} explose sur une ou deux périodes : un lot, une usine, une recette};
+\node[font=\footnotesize, text width=4.9cm, align=center] at (23.5,-6) {\textbf{toutes les marques} montent ensemble : le chocolat fond l'été};
+\node[font=\footnotesize, text width=4.9cm, align=center] at (40.5,-6) {des centaines de messages \textbf{presque identiques} : une mobilisation, pas un défaut};
+\fill[accentblue] (12,-13) rectangle (12.8,-11.5); \node[right, font=\footnotesize] at (12.9,-12.2) {la marque signalée};
+\fill[palblue] (24,-13) rectangle (24.8,-11.5); \node[right, font=\footnotesize] at (24.9,-12.2) {les autres marques};
+\end{tikzpicture}
+\end{center}
+{\small\color{slate}\textit{Schéma inventé : une barre par période, pour un même problème.}}
+
+\begin{tcbraster}[raster columns=3, raster equal height, raster column skip=6pt, raster every box/.style={unbreakable}]
+\begin{kpibox}[title={\faExclamationTriangle\ Incident candidat}, unbreakable]
+\small un problème en \textbf{excès} sur une case (marque, période), et cette marque porte au moins la
+moitié du pic. \textbf{C'est ce qu'on cherche.}
+\end{kpibox}
+\begin{kpibox}[title={\faSun\ Pic partagé}, unbreakable]
+\small un problème en excès sur une période, mais réparti entre les marques : une saison, un phénomène
+général.
+\end{kpibox}
+\begin{kpibox}[title={\faBullhorn\ Campagne}, unbreakable]
+\small un groupe dont la plupart des messages ont une jumelle \textbf{presque identique}.
+\end{kpibox}
+\end{tcbraster}
+
+\begin{piege}
+\textbf{Il n'y a pas d'étiquette.} On ne prédit rien : on \textbf{regroupe}. C'est de l'apprentissage
+non supervisé, et toute la difficulté est de montrer que les groupes trouvés veulent dire quelque chose.
+Le notebook travaille sur la \textbf{base réelle}. Les figures de cette fiche viennent d'une
+\textbf{base fictive} de même forme, pour montrer à quoi ressemblent les résultats sans montrer de données
+confidentielles.
+\end{piege}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Deux grandes parties, dans cet ordre}
+
+Le travail se fait en deux temps. D'abord la \textbf{chaîne principale} : un seul outil, de la lecture
+du fichier jusqu'au tableau de bord. Ensuite seulement, une fois qu'elle marche, la \textbf{chaîne de
+comparaison} : la même chaîne, rejouée avec huit outils.
+
+\begin{center}
+\begin{tikzpicture}[
+  p/.style={draw=#1, fill=#1!10, rounded corners=6pt, minimum width=15.6cm, minimum height=1.3cm,
+    text width=15.2cm, align=left, font=\small, inner sep=5pt},
+  n/.style={circle, fill=#1, text=white, font=\bfseries, minimum size=0.9cm},
+  gp/.style={fill=#1, text=white, rounded corners=4pt, font=\bfseries, minimum width=15.6cm, minimum height=0.8cm,
+    text width=15.2cm, align=left, inner sep=5pt}]
+\node[gp=sectioncolor] (g1) {\faRoute\quad Première grande partie : la chaîne principale \hfill{\normalfont\small un outil, Qwen3-Embedding-0.6B}};
+\node[p=slate, below=0.25cm of g1] (p0) {\hspace{1.3cm}\parbox{13.7cm}{\textbf{Mise en route.} Carte graphique, internet, la base réelle attachée, outils et contrôles \texttt{verifier}.}};
+\node[p=sectioncolor, below=0.25cm of p0] (p1) {\hspace{1.3cm}\parbox{13.7cm}{\textbf{Lire et contrôler.} Trouver l'en-tête tout seul, nettoyer les verbatims, compter, détecter la langue, chercher les données personnelles oubliées.}};
+\node[p=darkblue, below=0.25cm of p1] (p2) {\hspace{1.3cm}\parbox{13.7cm}{\textbf{Transformer en vecteurs.} TF-IDF puis plongements multilingues ; retirer la \og signature \fg{} de chaque langue par centrage.}};
+\node[p=accentblue, below=0.25cm of p2] (p3) {\hspace{1.3cm}\parbox{13.7cm}{\textbf{Regrouper.} HDBSCAN, fusion des groupes jumeaux d'une langue à l'autre, réglage automatique, mots et définitions de chaque problème, stabilité.}};
+\node[p=lightblue, below=0.25cm of p3] (p4) {\hspace{1.3cm}\parbox{13.7cm}{\textbf{Repérer les incidents.} Plaintes observées contre attendues (loi de Poisson), correction des tests multiples, part de la marque dans le pic ; incident, saison ou campagne.}};
+\node[p=cacao, below=0.25cm of p4] (p6) {\hspace{1.3cm}\parbox{13.7cm}{\textbf{Exporter.} \texttt{resultats.js} pour le tableau de bord, contrôlé : ni verbatim ni numéro de cas.}};
+\node[draw=accentblue, fill=white, line width=1.2pt, rounded corners=12pt, below=0.35cm of p6, font=\small\bfseries,
+  text=accentblue, inner sep=6pt] (porte) {\faCheckCircle\quad la chaîne principale est validée : ses vérifications lues, \texttt{resultats.js} écrit};
+\node[gp=bordeaux, below=0.35cm of porte] (g2) {\faBalanceScale\quad Deuxième grande partie : la chaîne de comparaison \hfill{\normalfont\small huit outils}};
+\node[p=bordeaux, below=0.25cm of g2] (p7) {\hspace{1.3cm}\parbox{13.7cm}{\textbf{Comparer les outils.} La même chaîne, du centrage aux alertes, avec huit représentations, du comptage de mots à un transformer de 4 milliards de paramètres : temps, mémoire, coût, qualité. Sortie : \texttt{comparaison.js}.}};
+\node[p=slate, below=0.35cm of p7] (p8) {\hspace{1.3cm}\parbox{13.7cm}{\textbf{Pour finir : ce qui peut sortir de Kaggle.} Des chiffres seulement ; aucun texte ne s'affiche ni ne sort.}};
+\foreach \k/\c in {0/slate,1/sectioncolor,2/darkblue,3/accentblue,4/lightblue,6/cacao,7/bordeaux,8/slate}
+  \node[n=\c] at ($(p\k.west)+(0.75,0)$) {\k};
+\draw[-{Stealth[length=3mm]}, very thick, color=accentblue] (p6) -- (porte);
+\draw[-{Stealth[length=3mm]}, very thick, color=accentblue] (porte) -- (g2);
+\end{tikzpicture}
+\end{center}
+
+\begin{enfant}
+\textbf{Comme apprendre une recette avant d'acheter des casseroles.} On réussit d'abord le plat avec une
+seule casserole (la chaîne principale). Ensuite seulement, on refait exactement la même recette avec huit
+casseroles pour voir laquelle cuit le mieux, le plus vite et pour le moins cher (la chaîne de comparaison).
+Comparer des casseroles sur une recette qu'on rate encore ne dirait rien.
+\end{enfant}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Mise en route sur Kaggle}
+
+\begin{bloc}[darkblue]{\faCalendarCheck\quad À faire AVANT la séance}
+\begin{tikzpicture}[
+  etape/.style={draw=darkblue,fill=white,rounded corners=4pt,minimum width=3.6cm,minimum height=1.5cm,
+    align=center,font=\small,text width=3.4cm},
+  arr/.style={-{Stealth[length=3mm]},very thick,color=darkblue}]
+\node[etape] (a) {{\Large\faUserPlus}\\Créer un compte\\\textbf{kaggle.com}};
+\node[etape,right=0.35cm of a] (b) {{\Large\faMobile*}\\\textbf{Vérifier ton téléphone}\\(sinon : ni GPU ni internet)};
+\node[etape,right=0.35cm of b] (c) {{\Large\faFileImport}\\Importer le notebook\\du TP (\textbf{File, Import})};
+\node[etape,right=0.35cm of c] (d) {{\Large\faDatabase}\\\textbf{Add Input} : le jeu\\de la base réelle};
+\draw[arr] (a) -- (b); \draw[arr] (b) -- (c); \draw[arr] (c) -- (d);
+\end{tikzpicture}
+\end{bloc}
+
+\begin{bloc}{\faPowerOff\quad Allumer le GPU et internet}
+\begin{tikzpicture}[
+  num/.style={circle,fill=sectioncolor,text=white,font=\bfseries\Large,minimum size=0.9cm},
+  lab/.style={align=center,font=\small,text width=3.6cm},
+  arr/.style={-{Stealth[length=3mm]},very thick,color=sectioncolor}]
+\node[num] (n1) {1}; \node[num,right=3.0cm of n1] (n2) {2};
+\node[num,right=3.0cm of n2] (n3) {3}; \node[num,right=3.0cm of n3] (n4) {4};
+\node[lab,below=2pt of n1] {Panneau de droite :\\\textbf{Session options}};
+\node[lab,below=2pt of n2] {\textbf{Accelerator}\\\faArrowRight\ \textbf{GPU T4}};
+\node[lab,below=2pt of n3] {\textbf{Internet}\\\faToggleOn\ \textbf{On}};
+\node[lab,below=2pt of n4] {Exécuter les cellules\\de la \textbf{partie 0}};
+\draw[arr] (n1) -- (n2); \draw[arr] (n2) -- (n3); \draw[arr] (n3) -- (n4);
+\end{tikzpicture}
+\end{bloc}
+
+\begin{tcbraster}[raster columns=2, raster equal height, raster column skip=8pt, raster every box/.style={unbreakable}]
+\begin{enfant}[unbreakable]
+\textbf{Internet sert à télécharger les modèles} (des fichiers de plusieurs centaines de mégaoctets
+à quelques gigaoctets), jamais à envoyer les plaintes : tous les calculs se font dans le notebook.
+\end{enfant}
+\begin{enfant}[unbreakable]
+\texttt{[À revoir]} = la marge d'une copie corrigée : une remarque et un \textbf{indice}, au lieu d'une
+erreur qui arrête tout. \textbf{Lis l'indice} avant de passer à la suite.
+\end{enfant}
+\end{tcbraster}
+
+\clearpage
+\section{Les règles de confidentialité}
+
+Le notebook tourne sur des plaintes réelles, couvertes par un accord de confidentialité que tu as signé.
+Les règles ci-dessous s'appliquent donc à chaque exécution.
+
+\begin{center}
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[
+  z/.style={draw=#1, fill=#1!8, rounded corners=8pt, minimum height=3.5cm, text width=4.1cm, align=center, font=\small},
+  f/.style={-{Stealth[length=3mm]}, very thick, color=#1}]
+\node[z=darkblue] (k) {{\huge\faLock}\\[3pt]\textbf{Kaggle, en privé}\\[3pt]les verbatims, les numéros de cas, les vecteurs, les mots des problèmes\\[3pt]\textit{tout reste ici}};
+\node[z=accentblue, right=1.7cm of k] (e) {{\huge\faShield*}\\[3pt]\textbf{L'export contrôlé}\\[3pt]\texttt{resultats.js}, \texttt{comparaison.js} : des chiffres seulement\\[3pt]\textit{refusé s'il contient un numéro de cas ou un verbatim}};
+\node[z=lightblue, right=1.7cm of e] (t) {{\huge\faChartPie}\\[3pt]\textbf{Le tableau de bord}\\[3pt]sur ta machine, sans internet\\[3pt]\textit{les problèmes y sont numérotés}};
+\draw[f=darkblue] (k) -- node[above, font=\footnotesize] {calcul} (e);
+\draw[f=accentblue] (e) -- node[above, font=\footnotesize] {téléchargement} (t);
+\end{tikzpicture}}
+\end{center}
+
+\begin{tikzpicture}[
+  rule/.style={draw=#1,fill=#1!10,rounded corners=5pt,minimum height=1.75cm,
+    text width=7.55cm,align=left,font=\normalsize,inner sep=8pt},
+  ico/.style={font=\Huge,color=#1}]
+\node[rule=sectioncolor] (r1) at (0,0) {\hspace{1.4cm}\parbox{5.95cm}{\textbf{Ne recopie aucun verbatim}\\
+  ni dans un rapport, ni dans un message, ni dans une capture d'écran.}};
+\node[ico=sectioncolor] at ($(r1.west)+(0.8,0)$) {\faCopy};
+\node[rule=accentblue,right=0.3cm of r1] (r2) {\hspace{1.4cm}\parbox{5.95cm}{\textbf{Aucun service en ligne}\\
+  pour lire ou traduire les plaintes : pas de chatbot, pas de traducteur web.}};
+\node[ico=accentblue] at ($(r2.west)+(0.8,0)$) {\faCloud};
+\node[rule=darkblue,below=0.3cm of r1] (r3) {\hspace{1.4cm}\parbox{5.95cm}{\textbf{Notebook privé.}\\
+  Jamais \og Public \fg{}, jamais partagé hors de l'équipe.}};
+\node[ico=darkblue] at ($(r3.west)+(0.8,0)$) {\faUserSecret};
+\node[rule=lightblue,below=0.3cm of r2] (r4) {\hspace{1.4cm}\parbox{5.95cm}{\textbf{Ne télécharge que l'export}\\
+  (\texttt{tableau\_de\_bord/*.js}), jamais les vecteurs \texttt{plongements\_*.npy} : on sait parfois
+  retrouver une partie d'un texte à partir de son vecteur.}};
+\node[ico=lightblue] at ($(r4.west)+(0.8,0)$) {\faDownload};
+\end{tikzpicture}
