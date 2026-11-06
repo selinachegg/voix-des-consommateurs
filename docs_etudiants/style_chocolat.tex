@@ -1,3 +1,4 @@
+% Copyright (c) 2026 Selina Cheggour. Tous droits réservés. Voir le fichier LICENSE.
 % Style des documents du TP plaintes : celui des TP audio (style_bleu.tex), palette chocolat vers rouge. Les noms des couleurs (darkblue, skyblue...) sont gardés pour que les macros restent identiques.
 % Repris de docs/style_bleu.tex ; seule la palette change.
 % Chargé par input{style_chocolat} dans fiche_etudiants_plaintes.tex.
@@ -65,6 +66,9 @@
 \fancyhead[L]{\small\color{sectioncolor}\entete}
 \fancyhead[R]{\small\color{sectioncolor}\doctype}
 \fancyfoot[C]{\small\color{sectioncolor}\thepage}
+\fancyfoot[L]{\scriptsize\color{sectioncolor}\textcopyright\ 2026 Selina Cheggour. Tous droits réservés.}
+\fancypagestyle{empty}{\fancyhf{}\renewcommand{\headrulewidth}{0pt}\renewcommand{\footrulewidth}{0pt}\fancyfoot[L]{\scriptsize\color{sectioncolor}\textcopyright\ 2026 Selina Cheggour. Tous droits réservés.}}
+\AtBeginDocument{\hypersetup{pdfauthor={Selina Cheggour}, pdfsubject={Copyright (c) 2026 Selina Cheggour. Tous droits réservés.}}}
 \renewcommand{\footrulewidth}{0.5pt}
 \renewcommand{\footrule}{\hbox to\headwidth{\color{skyblue}\leaders\hrule height \footrulewidth\hfill}}
 

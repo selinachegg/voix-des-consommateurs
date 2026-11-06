@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Selina Cheggour. Tous droits réservés. Voir le fichier LICENSE.
 """Base fictive de plaintes consommateurs, de même forme que l'export réel.
 
 Un tableau Excel (.xlsx), comme l'export réel : deux lignes vides, les en-têtes en ligne 3

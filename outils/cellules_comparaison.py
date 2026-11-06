@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Selina Cheggour. Tous droits réservés. Voir le fichier LICENSE.
 # Cellules de la partie 7 du TP plaintes : comparer les représentations (TF-IDF et sept transformers) à chaîne égale.
 # Branchées dans le notebook par construire_notebook.py, juste avant la partie 8 (base réelle).
 CELLULES = []

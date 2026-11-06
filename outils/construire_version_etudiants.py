@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Selina Cheggour. Tous droits réservés. Voir le fichier LICENSE.
 """Construit notebooks/analyse_plaintes_consommateurs.ipynb, la version remise aux étudiants, à partir de la
 version complète notebooks/analyse_plaintes_consommateurs_bis.ipynb (écrite par construire_notebook.py).
 

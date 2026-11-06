@@ -1,3 +1,4 @@
+# Copyright (c) 2026 Selina Cheggour. Tous droits réservés. Voir le fichier LICENSE.
 """Construit notebooks/analyse_plaintes_consommateurs_bis.ipynb, la version complète (base réelle ou fictive),
 cellule par cellule. La version remise aux étudiants en est tirée par construire_version_etudiants.py.
 
@@ -51,6 +52,8 @@ Le travail se fait en **deux grandes parties**, dans cet ordre.
 | | 6 | exporter les résultats chiffrés pour le tableau de bord |
 | II. chaîne de comparaison | 7 | rejouer la chaîne avec huit outils et les comparer en temps, mémoire, coût et qualité |
 | pour finir | 8 | changer de base : réelle ou fictive |
+
+© 2026 Selina Cheggour. Tous droits réservés. Voir le fichier LICENSE.
 """)
 
 # ════════════════════════════════════════════════════════════════════════════════════════════════
